@@ -1,0 +1,109 @@
+#!/bin/bash
+# Copyright (c) 2012 fbt <fbt@fleshless.org>
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#   - Redistributions of source code must retain the above copyright notice, 
+#       this list of conditions and the following disclaimer.
+#   - Redistributions in binary form must reproduce the above copyright notice,
+#       this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+# FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+# IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+# OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+tmp_dir="$HOME/.aur"
+aur_url="https://aur.archlinux.org"
+aur_pkg_url="${aur_url}/packages"
+makepkg_flags='-s'
+
+aur.usage() {
+cat << EOF
+$0 [options] [package]
+
+SYNC (-S):
+-s		Search for a package
+-i		Install a package after building it
+-d		Download a package and don't build it. Implies no -i.
+
+OTHER:
+-h		Show this message
+EOF
+}
+
+aur.die() { echo "$2"; exit "$1"; }
+
+aur.get() {
+	[[ -d "$tmp_dir" ]] || {
+		echo -n "My working directory does not exist, attempting to create it... "
+		mkdir -p "$tmp_dir" && {
+			echo "success"
+		} || {
+			aur.die 9 "failed"
+		}
+	}
+
+	cd "$tmp_dir"
+	echo "Downloading $aur_pkg_url/${1:0:2}/${1}/${1}.tar.gz"
+	curl "$aur_pkg_url/${1:0:2}/${1}/${1}.tar.gz" | gzip -d | tar xf -
+}
+
+aur.build() {
+	cd "$tmp_dir/$package"
+
+	[[ "$flag_install" ]] && { makepkg_flags="${makepkg_flags} -i"; }
+
+	source PKGBUILD
+
+	echo "${depends[@]}"
+
+	for i in ${depends[@]}; do
+		pacman -Q "$i" &>/dev/null || {
+			local pkg_repo=`package-query -f "%r" -AS ${i}`
+
+			[[ "$pkg_repo" ]] || { aur.die 10 "$package depends on $i, but $i is nowhere to be seen."; }
+
+			case "$pkg_repo" in
+				aur) "$0" -Si "$i";;
+			esac
+		}
+	done
+
+	makepkg ${makepkg_flags}
+}
+
+aur.search() {
+	package-query -ASs "$1"
+}
+
+while getopts "Ssidh" option; do
+	case "$option" in
+		S) action_group='sync';;
+		s) action='search';;
+		i) flag_install='1';;
+		d) flag_download='1';;
+		h|?|*) aur.usage; exit;;
+	esac
+done
+
+[[ "$OPTIND" ]] && { shift $(($OPTIND-1)); }
+
+package="$1"
+
+case "$action_group" in
+	sync)
+		[[ "$action" == 'search' ]] && {
+			aur.search "$package"; exit 1
+		} || {
+			aur.get "$package"
+			[[ "$flag_download" ]] || { aur.build "$package"; }
+		}
+	;;
+esac

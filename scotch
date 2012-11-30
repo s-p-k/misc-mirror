@@ -1,0 +1,151 @@
+#!/bin/bash
+# Copyright (c) 2012 fbt <fbt@fleshless.org>
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+# 	- Redistributions of source code must retain the above copyright notice, 
+#		this list of conditions and the following disclaimer.
+# 	- Redistributions in binary form must reproduce the above copyright notice,
+#		this list of conditions and the following disclaimer in the
+#		documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+# FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+# IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+# OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# config
+
+cfg_apps_dir='/home/trash/wine.d'
+cfg_tmp_dir='/tmp/scotch'
+cfg_run_dir="$cfg_tmp_dir/run"
+cfg_log_dir="$cfg_tmp_dir/log"
+
+cfg_wine_debug_level='fixme-all'
+
+cfg_desktop="1280x720"
+
+# functions
+
+scotch.usage() {
+	echo "Scotch — a wine helper script"
+	echo "Usage: `basename $0` [-lnks] <app>"
+	echo "Flags:"
+	echo "	-l			Launch the app (default).*"
+	echo "	-n			Create a new app dir in $cfg_apps_dir.**"
+	echo "	-k			Kill all processes in the wine prefix of an app."
+	echo "	-s			Get a shell with all environment variables ready to work with the wine prefix."
+	echo
+	echo "* Scotch takes the app binary from $cfg_apps_dir/\${app}/.app_bin. The path is relative to the app dir."
+	echo "** You should really create $cfg_apps_dir/.template for scotch to copy it into new prefixes."
+}
+
+scotch.msg() { echo "[scotch] $1"; }
+scotch.err() { scotch.msg "(err) $1" >&2; }
+scotch.die() {
+	[[ "$2" ]] && { scotch.err "$2"; }
+	exit "$1"
+}
+
+scotch.env() {
+	export WINEPREFIX="$cfg_apps_dir/$app/wine"
+	export WINEDEBUG="$cfg_wine_debug_level"
+	
+	[[ -d "$cfg_apps_dir/opt/wine/bin" ]] && {
+		export PATH="$cfg_apps_dir/$app/opt/wine/bin:$PATH"
+	}
+
+	export app_bin=`cat $cfg_apps_dir/$app/.app_bin | cut -d ' ' -f 1`
+	export app_bin_args=`cat $cfg_apps_dir/$app/.app_bin | cut -d ' ' -f 2-`
+}
+
+scotch.launch() {
+	[[ -d "$cfg_apps_dir/$app" ]] || {
+		scotch.err "$app not found in $cfg_apps_dir"
+		return 1
+	}
+
+	[[ -f "$cfg_run_dir/$app.pid" ]] && {
+		app_pid=`cat "$cfg_run_dir/$app.pid"`
+
+		ps -p "$app_pid" &>/dev/null && {
+			scotch.err "$app is already running with PID $app_pid"
+			return 1
+		}
+	}
+
+	scotch.msg "Launching $app..."
+
+	[[ "$flag_nodesktop" ]] || { wine_args="explorer /desktop='$app','$cfg_desktop'"; }
+
+	scotch.env
+	cd "$cfg_apps_dir/$app/app"
+
+	[[ "$flag_nodesktop" ]] && {
+		wine "$app_bin" &>"$cfg_log_dir/$app.log" &
+	} || {
+		wine explorer /desktop="$app","$cfg_desktop" "$app_bin" $app_bin_args &>"$cfg_log_dir/$app.log" &
+	}
+
+	echo "$!" > "$cfg_run_dir/$app.pid"
+}
+
+scotch.new() {
+	[[ -d "$cfg_apps_dir/.template" ]] && {
+		[[ -e "$cfg_apps_dir/$app" ]] && {
+			scotch.err "$cfg_apps_dir/$app already exists!"
+			return 1
+		} || {
+			cp -r "$cfg_apps_dir/.template" "$cfg_apps_dir/$app"
+		}
+	} || {
+		scotch.msg "(warn) $cfg_apps_dir/.template not found. If you create a reference WINEPREFIX and put it there, it will make your life a lot easier :)"
+		mkdir -p "$cfg_apps_dir/$app"
+	}
+	
+	"$0" -s "$app"
+}
+
+scotch.kill() {
+	scotch.msg "Killing $app..."
+	scotch.env
+	wineserver -k
+}
+
+scotch.shell() { scotch.env; cd "$cfg_apps_dir/$app"; $SHELL; }
+
+# main
+
+for i in "$cfg_run_dir" "$cfg_log_dir"; do
+	mkdir -p "$i" || { scotch.err "$i does not exist and cannot be created."; exit 7; }
+done
+
+while getopts "hlsnk" option; do
+	case "$option" in
+		s) action='shell';;
+		l) action='launch';;
+		n) action='new';;
+		k) action='kill';;
+		h|?) scotch.usage; exit 3;;
+	esac
+done
+
+[[ "$OPTIND" ]] && { shift $[OPTIND-1]; }
+
+[[ "$1" ]] && {
+	app="$1"
+} || {
+	scotch.usage
+	exit 5
+}
+
+[[ "$action" ]] || { action='launch'; }
+
+scotch.$action
+
+exit "$?"

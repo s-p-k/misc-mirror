@@ -1,0 +1,33 @@
+--- syslinux.cfg	2012-11-15 15:58:05.573364287 +0000
++++ syslinux.cfg.openrc	2012-11-15 16:03:07.866698288 +0000
+@@ -19,7 +19,7 @@
+ # Please review the wiki: https://wiki.archlinux.org/index.php/Syslinux
+ # The wiki provides further configuration examples
+ 
+-DEFAULT arch
++DEFAULT gentarch
+ PROMPT 0        # Set to 1 if you always want to display the boot: prompt 
+ TIMEOUT 50
+ # You can create syslinux keymaps with the keytab-lilo tool
+@@ -52,13 +52,19 @@
+ LABEL arch
+ 	MENU LABEL Arch Linux
+ 	LINUX ../vmlinuz-linux
+-	APPEND root=/dev/sda3 ro
++	APPEND root=/dev/sda3 init=/usr/lib/systemd/systemd ro
++	INITRD ../initramfs-linux.img
++
++LABEL gentarch
++	MENU LABEL Arch Linux (OpenRC)
++	LINUX ../vmlinuz-linux
++	APPEND root=/dev/sda3 init=/sbin/init-openrc ro
+ 	INITRD ../initramfs-linux.img
+ 
+ LABEL archfallback
+ 	MENU LABEL Arch Linux Fallback
+ 	LINUX ../vmlinuz-linux
+-	APPEND root=/dev/sda3 ro
++	APPEND root=/dev/sda3 init=/usr/lib/systemd/systemd ro
+ 	INITRD ../initramfs-linux-fallback.img
+ 
+ #LABEL windows

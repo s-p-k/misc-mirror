@@ -1,0 +1,170 @@
+#!/bin/bash
+# Copyright (c) 2012 fbt <fbt@fleshless.org>
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#   - Redistributions of source code must retain the above copyright notice, 
+#       this list of conditions and the following disclaimer.
+#   - Redistributions in binary form must reproduce the above copyright notice,
+#       this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+# FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+# IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+# OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# Config
+minecraft_dir="$HOME/.minecraft"
+digger_dir="$HOME/.digger"
+
+java_opts="-Xms1G -Xmx1G"
+
+minecraft_launcher="$digger_dir/launcher.jar"
+minecraft_cmd="java -jar $java_opts $minecraft_launcher"
+
+minecraft_launcher_url="https://s3.amazonaws.com/MinecraftDownload/launcher/minecraft.jar"
+minecraft_archive="http://assets.minecraft.net"
+
+# miner_path="$HOME/bin/miner"
+
+# Do not edit any further if you don't know what you are doing!
+# Functions
+
+digger.usage() {
+	script_basename="${0##*/}"
+
+	echo "Usage: $script_basename [-c] [instance]"
+	echo "Flags:"
+	echo "	-c			Create a new minecraft instance"
+	echo "	-d	<ver>	Download a specific version of minecraft.jar. You need to have a working instance for this."
+	echo "	-p	<zip>	Patch the instance's minecraft.jar with <zip>"
+	echo "	-h			Show this message"
+	echo "	-v			Version"
+	echo ""
+	echo "An instance is a directory in $digger_dir"
+	echo "If an instance is not specified, $script_basename will assume instance “default”. It makes sense to create a link by that name to your most used instance."
+}
+
+digger.patch() {
+	[[ "$miner_path" ]] || { miner_path=`which miner`; }
+	[[ "$miner_path" ]] || { digger.err "miner not found. You can get it at https://bitbucket.org/fbt/scripts"; return 1; }
+
+	"$miner_path" -d "$digger_dir/$minecraft_instance" "$mod_zip" || { digger.err "Something went wrong with miner. Patching failed."; return 1; }
+}
+
+digger.get_jar() {
+	local minecraft_jar="$digger_dir/$minecraft_instance/bin/minecraft.jar"
+	local jar_url="$minecraft_archive/${jar_version//./_}/minecraft.jar"
+
+	[[ "$jar_version" ]] && {
+		[[ `echo "$jar_version" | grep -oE '([0-9]+\.){2}[0-9]+'` == "$jar_version" ]] || {
+			digger.err "Invalid jar version. It shoud be something like this: 1.4.5"
+			return 1
+		}
+	}
+
+	[[ -f "$minecraft_jar" ]] && {
+		cp "$minecraft_jar" "$minecraft_jar.backup"
+		curl -kL "$jar_url" > "$minecraft_jar" 2>>/tmp/digger.log || {
+			digger.err "Could not download minacraft.jar from $jar_url, see /tmp/digger.log for details"
+			return 1
+		}
+	} || {
+		digger.err "$minecraft_jar does not exist. Is there a minecraft instance there?"
+		return 1
+	}
+}
+
+digger.env() {
+	[[ -d "$digger_dir" ]] || {
+		mkdir -p "$digger_dir" || {
+			digger.err "$digger_dir does not exist and could not be created"
+			return 1
+		}
+	}
+
+	[[ -f "$minecraft_launcher" ]] || {
+		digger.err "$minecraft_launcher does not exist, attempting to get it..."
+		curl -skL "$minecraft_launcher_url" > "$minecraft_launcher" && {
+			digger.msg "success"
+		} || {
+			digger.err "...and I failed to download it :("
+			return 1
+		}
+	}
+}
+
+digger.err() { echo "[digger] (error) $1" >&2; }
+digger.msg() { echo "[digger] $1"; }
+
+digger.launch() {
+	digger.msg "Launching $minecraft_instance"
+	$minecraft_cmd &>"$minecraft_dir/.minecraft.log"
+	return 0
+}
+
+digger.new() { mkdir "$digger_dir/$minecraft_instance"; }
+
+# Main part
+while getopts "chd:p:" option; do
+	case $option in
+		d) flag_get_jar='1'; jar_version="$OPTARG";;
+		p) flag_patch='1'; mod_zip="$OPTARG";;
+		c) flag_create='1';;
+		h|?|*) digger.usage; exit;;
+	esac
+done
+
+[[ "$OPTIND" ]] && { shift $(($OPTIND-1)); }
+
+[[ "$1" ]] && {
+	minecraft_instance="$1"
+} || {
+	minecraft_instance='default'
+}
+
+digger.env || exit 27
+
+[[ "$flag_create" ]] && { digger.new; }
+
+[[ "$flag_get_jar" ]] && {
+	[[ "$flag_create" ]] && {
+		digger.err "-c and -d are mutually exclusive. You have to have a working instance to substitute minecraft.jar"
+		exit 17
+	}
+
+	digger.get_jar || { exit 21; }
+}
+
+[[ "$flag_patch" ]] && {
+	[[ "$flag_create" ]] && {
+		digger.err "-c and -p are mutually exclusive. You have to have a working instance to patch minecraft.jar"
+		exit 23
+	}
+
+	digger.patch || { exit 25; }
+}
+
+
+[[ -e "$minecraft_dir" ]] && {
+	[[ -h "$HOME/.minecraft" ]] && {
+		rm "$minecraft_dir"
+	} || {
+		digger.err "$minecraft_dir exists and is not a symlink!"
+		exit 9
+	}
+}
+
+[[ -e "$digger_dir/$minecraft_instance" ]] && {
+	ln -s "$digger_dir/$minecraft_instance" "$minecraft_dir"
+	digger.launch
+} || {
+	digger.err "$minecraft_instance not found in $digger_dir"
+	exit 11
+}
