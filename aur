@@ -80,7 +80,7 @@ aur.build() {
 }
 
 aur.search() {
-	package-query -ASs "$1"
+	package-query --aur-url "$aur_url" -ASs "$1"
 }
 
 while getopts "Ssidh" option; do
