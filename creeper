@@ -48,6 +48,20 @@ assets_url='http://assets.minecraft.net'
 ## functions
 source '/opt/bashlib/bashlib'
 
+creeper.usage() {
+	local script_name=`basename $0`
+
+	echo "Usage: $script_name <action> <server> [args]"
+	echo ""
+	echo "Actions:"
+	echo "	create <server> [version]			# Create a new server instance."
+	echo "	start/stop/restart <server>			# These are self-explanatory, I believe."
+	echo "	patch <server> <zip/jar>			# Patch the instance's minecraft_server.jar with a zip/jar file."
+	echo "	backup <server>						# Make a backup of the world dir."
+	echo "	status <server>						# Check if the server is running."
+	echo "	raw <server> <line>					# Send a raw command to the server. Allows for special chars (like \n)."
+}
+
 creeper.msg() { echo "[creeper] $1"; }
 creeper.err() { creeper.msg "(error) $1" 2>&1; }
 
@@ -207,8 +221,15 @@ creeper.backup() {
 	creeper.raw 'save-off'
 	creeper.raw 'save-all'
 
-	sleep 10; cd "$world_dir"
-	tar cf - "$srv_name" | gzip > "$backup_dir/${srv_name}_`date +%Y%m%d.%H%M%S`.tar.gz"
+	sleep 10
+
+	[[ "$world_dir" ]] && {
+		local srv_world_dir="$world_dir/$srv_name"
+	} || {
+		local srv_world_dir="$srv_dir/world"
+	}
+
+	tar cf - "$srv_world_dir" | gzip > "$backup_dir/${srv_name}_`date +%Y%m%d.%H%M%S`.tar.gz"
 
 	creeper.raw 'save-on'
 
@@ -269,7 +290,7 @@ done
 srv_name="$2"
 action="$1"
 
-[[ "$srv_name" ]] || { creeper.die 16 'Please specify the server name'; }
+[[ "$srv_name" ]] || { creeper.usage; creeper.die 16; }
 [[ "$action" ]] || { action='status'; }
 
 srv_pidfile="$run_dir/$srv_name.pid"
@@ -305,4 +326,6 @@ case "$action" in
 	;;
 
 	raw) creeper.raw "$3";;
+
+	h|?) creeper.usage;;
 esac
