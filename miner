@@ -20,11 +20,11 @@
 # OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 tmpdir="/tmp/mctmp"
-mcdir="$HOME/.minecraft"
-current_dir="`pwd`"
+mcdir="$HOME/.minecraf"
+minecraft_jar="$HOME/.minecraft/bin/minecraft.jar"
 
 miner.usage() {
-	echo "Usage: `basename $0` [-d <minecraft_dir>] <mod>"
+	echo "Usage: `basename $0` [-j </path/to/jar>] <mod_archive>"
 }
 
 miner.msg() {
@@ -35,33 +35,33 @@ miner.err() {
 	miner.msg "(error) $1" >&2
 }
 
-while getopts "d:h" option; do
+while getopts "j:h" option; do
 	case "$option" in
-		d) mcdir=`realpath "$OPTARG"`;;
+		j) minecraft_jar=`realpath "$OPTARG"`;;
 		h|?|*) miner.usage; exit 3;;
 	esac
 done
 
 [[ "$OPTIND" ]] && { shift $[OPTIND-1]; }
 
-target_zip=`realpath "$1"`
+mod_archive=`realpath "$1"`
 
 [[ -d "$tmpdir" ]] && { rm -r "$tmpdir"; }
 
 mkdir -p "$tmpdir"
 cd "$tmpdir"
 
-[[ -f "$target_zip" ]] || { miner.err "$target_zip does not exist"; exit 1; }
+[[ -f "$mod_archive" ]] || { miner.err "$mod_archive does not exist"; exit 1; }
 
-cp "$mcdir/bin/minecraft.jar" "$mcdir/bin/minecraft.jar.backup"
+cp "$minecraft_jar" "$minecraft_jar.backup"
 
-miner.msg "Patching ${mcdir}/bin/minecraft.jar with ${target_zip}... "
+miner.msg "Patching $minecraft_jar with ${mod_archive}... "
 
-unzip "$mcdir/bin/minecraft.jar" &>/tmp/miner.log
-rm "$mcdir/bin/minecraft.jar"
-unzip -o "$target_zip" &>>/tmp/miner.log
+unzip "$minecraft_jar" &>/tmp/miner.log
+rm "$minecraft_jar"
+unzip -o "$mod_archive" &>>/tmp/miner.log
 [[ -d "META-INF" ]] && { rm -r META-INF; }
-zip -r "$mcdir/bin/minecraft.jar" . &>>/tmp/miner.log
+zip -r "$minecraft_jar" . &>>/tmp/miner.log
 
 cd; rm -r "$tmpdir"
 
