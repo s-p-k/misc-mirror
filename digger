@@ -53,9 +53,9 @@ digger.usage() {
 
 digger.patch() {
 	[[ "$miner_path" ]] || { miner_path=`which miner`; }
-	[[ "$miner_path" ]] || { digger.err "miner not found. You can get it at https://bitbucket.org/fbt/scripts"; return 1; }
+	[[ "$miner_path" ]] || { digger.err "miner not found. You can get it at https://github.com/fbt/misc or https://bitbucket.org/fbt/scripts"; return 1; }
 
-	"$miner_path" -d "$digger_dir/$minecraft_instance" "$mod_zip" || { digger.err "Something went wrong with miner. Patching failed."; return 1; }
+	"$miner_path" -j "$digger_dir/$minecraft_instance/bin/minecraft.jar" "$mod_zip" || { digger.err "Something went wrong with miner. Patching failed."; return 1; }
 }
 
 digger.get_jar() {
