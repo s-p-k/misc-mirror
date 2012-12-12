@@ -111,12 +111,23 @@ digger.launch() {
 
 digger.new() { mkdir "$digger_dir/$minecraft_instance"; }
 
+digger.clone() {
+	[[ -e "$digger_dir/$minecraft_instance" ]] && {
+		digger.err "$minecraft_instance already exists!"
+		return 1
+	}
+	
+	digger.msg "Copying $1 into $minecraft_instance"
+	cp -r "$digger_dir/$1" "$digger_dir/$minecraft_instance"
+}
+
 # Main part
-while getopts "chd:p:" option; do
+while getopts "chd:p:C:" option; do
 	case $option in
 		d) flag_get_jar='1'; jar_version="$OPTARG";;
 		p) flag_patch='1'; mod_zip="$OPTARG";;
 		c) flag_create='1';;
+		C) flag_clone='1'; clone_target="$OPTARG";;
 		h|?|*) digger.usage; exit;;
 	esac
 done
@@ -132,6 +143,10 @@ done
 digger.env || exit 27
 
 [[ "$flag_create" ]] && { digger.new; }
+
+[[ "$flag_clone" ]] && {
+	digger.clone "$clone_target" || exit 29
+}
 
 [[ "$flag_get_jar" ]] && {
 	[[ "$flag_create" ]] && {
