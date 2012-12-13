@@ -30,6 +30,7 @@ miner.err() { miner.msg "(error) $1" >&2; }
 while getopts "j:h" option; do
 	case "$option" in
 		j) minecraft_jar=`realpath "$OPTARG"`;;
+		s) flag_server='1';;
 		h|?|*) miner.usage; exit 3;;
 	esac
 done
@@ -45,14 +46,16 @@ cd "$tmpdir"
 
 [[ -f "$mod_archive" ]] || { miner.err "$mod_archive does not exist"; exit 1; }
 
-cp "$minecraft_jar" "$minecraft_jar.backup"
+cp "$minecraft_jar" "${minecraft_jar}.backup"
 
 miner.msg "Patching $minecraft_jar with ${mod_archive}... "
 
 unzip "$minecraft_jar" &>/tmp/miner.log
 rm "$minecraft_jar"
 unzip -o "$mod_archive" &>>/tmp/miner.log
-[[ -d "META-INF" ]] && { rm -r META-INF; }
+[[ "$flag_server" ]] || {
+	[[ -d "META-INF" ]] && { rm -r META-INF; }
+}
 zip -r "$minecraft_jar" . &>>/tmp/miner.log
 
 cd; rm -r "$tmpdir"
