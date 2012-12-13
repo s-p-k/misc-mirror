@@ -23,17 +23,9 @@ tmpdir="/tmp/mctmp"
 mcdir="$HOME/.minecraf"
 minecraft_jar="$HOME/.minecraft/bin/minecraft.jar"
 
-miner.usage() {
-	echo "Usage: `basename $0` [-j </path/to/jar>] <mod_archive>"
-}
-
-miner.msg() {
-	echo "[miner] $1"
-}
-
-miner.err() {
-	miner.msg "(error) $1" >&2
-}
+miner.usage() { echo "Usage: `basename $0` [-j </path/to/jar>] <mod_archive>"; }
+miner.msg() { echo "[miner] $1"; }
+miner.err() { miner.msg "(error) $1" >&2; }
 
 while getopts "j:h" option; do
 	case "$option" in
