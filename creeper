@@ -313,7 +313,7 @@ case "$action" in
 
 	patch) creeper.patch "$3";;
 
-	restart) creeper.stop && creeper.start;;
+	restart) creeper.stop && creeper.daemon;;
 
 	backup) creeper.backup;;
 
