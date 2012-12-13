@@ -117,42 +117,6 @@ creeper.create() {
 	}
 }
 
-creeper.old_start() {
-	[[ "$srv_pid" ]] && {
-		blib.sys.pid_check "$srv_pid" && {
-			echo "$srv_name is already running with PID: $srv_pid"
-			return 1
-		}
-	}
-
-	srv_start_cmd="java -jar -Xmx${java_heapsize} -Xms${java_heapsize} minecraft_server.jar"
-	
-	cd "$srv_dir/$srv_name"
-
-	[[ -p "$srv_fifo" ]] && {
-		rm "$srv_fifo"; mkfifo "$srv_fifo"
-	} || {
-		[[ -e "$srv_fifo" ]] && {
-			creeper.die '14' "$srv_fifo exists, but is not a named pipe!"
-		} || {
-			mkfifo "$srv_fifo"
-		}
-	}
-
- 	tail -f -n 0 "$srv_fifo" | $srv_start_cmd > "$log_dir/$srv_name.log" 2>"$log_dir/$srv_name.err" &
-
-#	$srv_start_cmd > "$log_dir/$srv_name.log" 2>"$log_dir/$srv_name.err"
-	
-	srv_pid="$!"
-
-	echo "$srv_pid" > "$srv_pidfile"
-
-	blib.sys.pid_check "$srv_pid" && {
-		echo "$srv_name started with PID: $srv_pid"
-		echo -ne '\n' >> "$srv_fifo"
-	}
-}
-
 creeper.start() {
 	srv_start_cmd="java -jar -Xmx${java_heapsize} -Xms${java_heapsize} minecraft_server.jar"
 	cd "$srv_dir/$srv_name"
@@ -308,7 +272,6 @@ srv_cfgfile="$srv_dir/$srv_name/.creeperrc"
 case "$action" in
 	create) creeper.create "$3";;
 	start) creeper.daemon;;
-	simplestart) creeper.old_start;;
 	stop) creeper.stop;;
 
 	patch) creeper.patch "$3";;
