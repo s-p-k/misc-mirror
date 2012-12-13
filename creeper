@@ -325,6 +325,8 @@ case "$action" in
 		}
 	;;
 
+	pid) creeper.status && { echo "$srv_pid"; } || { exit 27; };;
+
 	raw) creeper.raw "$3";;
 
 	h|?) creeper.usage;;
