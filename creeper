@@ -113,6 +113,7 @@ creeper.create() {
 	}
 
 	[[ "$world_dir" ]] && {
+		mkdir "$world_dir/$srv_name"
 		ln -s "$world_dir/$srv_name" "$srv_dir/$srv_name/world"
 	}
 }
@@ -126,7 +127,8 @@ creeper.start() {
 creeper.daemon() {
 	[[ "$srv_pid" ]] && {
 		blib.sys.pid_check "$srv_pid" && {
-			echo "$srv_name is already running with PID: $srv_pid"
+			creeper.err "$srv_name is already running with PID: $srv_pid"
+			return 1
 		}
 	}
 
@@ -187,13 +189,12 @@ creeper.backup() {
 
 	sleep 10
 
-	[[ "$world_dir" ]] && {
-		local srv_world_dir="$world_dir/$srv_name"
-	} || {
-		local srv_world_dir="$srv_dir/world"
-	}
+	srv_world_dir=`realpath "$srv_dir/$srv_name/world"`
+	backup_archive="$backup_dir/${srv_name}_`date +%Y%m%d.%H%M%S`.tar.gz"
 
-	tar cf - "$srv_world_dir" | gzip > "$backup_dir/${srv_name}_`date +%Y%m%d.%H%M%S`.tar.gz"
+	creeper.msg "Making a backup of $srv_world_dir to $backup_archive"
+
+	tar cf - "$srv_world_dir" | gzip > "$backup_archive"
 
 	creeper.raw 'save-on'
 
@@ -201,28 +202,16 @@ creeper.backup() {
 }
 
 creeper.patch() {
-	local target_zip="$1"
-	local patch_dir="$tmp_dir/patch/$srv_name"
-	local current_dir="`pwd`"
+	[[ "$miner_path" ]] || { miner_path=`which miner`; }
+	[[ "$miner_path" ]] || { creeper.err "miner not found. You can get it at https://github.com/fbt/misc or https://bitbucket.org/fbt/scripts"; return 1; }
+
+	local mod_archive="$1"
 	local target_jar="$srv_dir/$srv_name/minecraft_server.jar"
 
-	[[ -d "$tmp_dir/patch" ]] || { mkdir -p "$tmp_dir/patch"; }
-
-	mkdir "$patch_dir"; cd "$patch_dir"
-
-	[[ -f "$target_zip" ]] || { target_zip="$current_dir/$target_zip"; }
-	[[ -f "$target_zip" ]] || { echo "Cannot find target"; return 1; }
-
-	echo -n "Patching your minecraft_server.jar with ${target_zip}... "
-
-	unzip "$target_jar" &>"$log_dir/patch_$srv_name.log"; rm "$target_jar"
-	unzip -o "$target_zip" &>"$log_dir/patch_$srv_name.log"
-#	[[ -d "META-INF" ]] && { rm -r META-INF; }
-	zip -r "$target_jar" . &>>"$log_dir/patch_$srv_name.log"
-	
-	cd; rm -r "$patch_dir"
-
-	echo "done"
+	"$miner_path" -s -j "$target_jar" "$mod_archive" || {
+		creeper.err "Something went wrong with miner. Patching failed."
+		return 1
+	}
 }
 
 # /functions
