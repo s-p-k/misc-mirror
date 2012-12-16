@@ -77,12 +77,7 @@ creeper.get_jar() {
 	curl -skL "$srv_jar_url"
 }
 
-creeper.raw() {
-	case "$communication_method" in
-		fifo) echo -ne "$1\n" >> "$srv_fifo";;
-		proc) echo "$1" >> "/proc/$srv_pid/fd/0";;
-	esac
-}
+creeper.raw() { echo "$1" >> "$srv_fifo"; }
 creeper.say() { creeper.raw "say $1"; }
 
 creeper.create() {
