@@ -21,28 +21,27 @@
 # IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
 # OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-## config
+## locally modifiable config
 srv_dir="$HOME/srv"
 jar_dir="$HOME/jar"
-
 backup_dir="$HOME/backup"
-
 tmp_dir='/tmp/ramdisk/creeper'
-
-run_dir="${tmp_dir}/run"
-world_dir="${tmp_dir}/world"
-fifo_dir="${tmp_dir}/fifo"
-log_dir="${tmp_dir}/log"
-patch_dir="${tmp_dir}/patch"
-
-# srv_ver='1.4.5'
-
-communication_method='fifo'
 
 java_heapsize='1G'
 
 srv_jar_url='https://s3.amazonaws.com/MinecraftDownload/launcher/minecraft_server.jar'
 assets_url='http://assets.minecraft.net'
+# /locally modifiable config
+
+## sourcing local config
+[[ -f "$HOME/.creeperrc" ]] && { source "$HOME/.creeperrc"; }
+
+## config
+run_dir="${tmp_dir}/run"
+world_dir="${tmp_dir}/world"
+fifo_dir="${tmp_dir}/fifo"
+log_dir="${tmp_dir}/log"
+patch_dir="${tmp_dir}/patch"
 # /config
 
 ## functions
@@ -217,8 +216,6 @@ creeper.patch() {
 }
 
 # /functions
-
-[[ -f "$HOME/.creeperrc" ]] && { source "$HOME/.creeperrc"; }
 
 while getopts "f" option; do
 	case "$option" in
