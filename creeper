@@ -103,11 +103,13 @@ creeper.create() {
 		}
 	} || {
 		[[ -f "$jar_dir/minecraft_server.jar" ]] || {
+			creeper.msg "$jar_dir/minecraft_server.jar not found, attempting to download..."
 			creeper.get_jar > "$jar_dir/minecraft_server.jar" || {
 				creeper.err "Cannot download the server jar :("
 				return 1
 			}
 		}
+		creeper.msg "success"
 		
 		cp "$jar_dir/minecraft_server.jar" "$srv_dir/$srv_name/minecraft_server.jar"
 	}
