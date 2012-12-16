@@ -218,6 +218,8 @@ creeper.patch() {
 
 # /functions
 
+[[ -f "$HOME/.creeperrc" ]] && { source "$HOME.creeperrc"; }
+
 while getopts "f" option; do
 	case "$option" in
 		f) foo="$OPTARG";;
