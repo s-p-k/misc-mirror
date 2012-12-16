@@ -25,7 +25,7 @@
 srv_dir="$HOME/srv"
 jar_dir="$HOME/jar"
 backup_dir="$HOME/backup"
-tmp_dir='/tmp/ramdisk/creeper'
+tmp_dir="/tmp/$USER/creeper"
 
 java_heapsize='1G'
 
