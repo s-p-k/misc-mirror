@@ -59,6 +59,9 @@ creeper.usage() {
 	echo "	backup <server>						# Make a backup of the world dir."
 	echo "	status <server>						# Check if the server is running."
 	echo "	raw <server> <line>					# Send a raw command to the server. Allows for special chars (like \n)."
+	echo
+	echo "Creeper will read some options from ~/.creeperrc."
+	echo "See the “locally modifiable config” section of the script for the values that can be overwritten."
 }
 
 creeper.msg() { echo "[creeper] $1"; }
@@ -277,5 +280,5 @@ case "$action" in
 
 	raw) creeper.raw "$3";;
 
-	h|?) creeper.usage;;
+	help|?) creeper.usage;;
 esac
