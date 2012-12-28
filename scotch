@@ -125,12 +125,13 @@ for i in "$cfg_run_dir" "$cfg_log_dir"; do
 	mkdir -p "$i" || { scotch.err "$i does not exist and cannot be created."; exit 7; }
 done
 
-while getopts "hlsnk" option; do
+while getopts "hlsnkd" option; do
 	case "$option" in
 		s) action='shell';;
 		l) action='launch';;
 		n) action='new';;
 		k) action='kill';;
+		d) flag_nodesktop='1';;
 		h|?) scotch.usage; exit 3;;
 	esac
 done
