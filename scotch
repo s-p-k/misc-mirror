@@ -117,7 +117,11 @@ scotch.kill() {
 	wineserver -k
 }
 
-scotch.shell() { scotch.env; cd "$cfg_apps_dir/$app"; $SHELL; }
+scotch.shell() {
+	scotch.env
+	cd "$cfg_apps_dir/$app"
+	$SHELL
+}
 
 # main
 
