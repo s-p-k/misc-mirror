@@ -59,7 +59,7 @@ aur.get() {
 aur.build() {
 	cd "$cfg_work_dir/$package"
 
-	[[ -d "$cfg_db_dir/deps" ]] || { mkdir -p "$cfg_db_dir/deps"; }
+	[[ -d "$cfg_db_dir/pkg/$package/deps" ]] || { mkdir -p "$cfg_db_dir/pkg/$package/deps"; }
 
 	[[ "$flag_install" ]] && { makepkg_flags="${makepkg_flags} -i"; }
 
@@ -77,7 +77,7 @@ aur.build() {
 				aur) "$0" -Si "$i";;
 			esac
 
-			echo "$i" >> "$cfg_db_dir/deps/$package"
+			touch "$cfg_db_dir/pkg/$package/deps/$i"
 		}
 	done
 
