@@ -19,7 +19,8 @@
 # IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
 # OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-tmp_dir="$HOME/.aur"
+cfg_work_dir="$HOME/.aur"
+cfg_db_dir="$cfg_work_dir/.db"
 aur_url="https://aur.archlinux.org"
 aur_pkg_url="${aur_url}/packages"
 makepkg_flags='-s'
@@ -41,22 +42,24 @@ EOF
 aur.die() { echo "$2"; exit "$1"; }
 
 aur.get() {
-	[[ -d "$tmp_dir" ]] || {
+	[[ -d "$cfg_work_dir" ]] || {
 		echo -n "My working directory does not exist, attempting to create it... "
-		mkdir -p "$tmp_dir" && {
+		mkdir -p "$cfg_work_dir" && {
 			echo "success"
 		} || {
 			aur.die 9 "failed"
 		}
 	}
 
-	cd "$tmp_dir"
+	cd "$cfg_work_dir"
 	echo "Downloading $aur_pkg_url/${1:0:2}/${1}/${1}.tar.gz"
 	curl "$aur_pkg_url/${1:0:2}/${1}/${1}.tar.gz" | gzip -d | tar xf -
 }
 
 aur.build() {
-	cd "$tmp_dir/$package"
+	cd "$cfg_work_dir/$package"
+
+	[[ -d "$cfg_db_dir/deps" ]] || { mkdir -p "$cfg_db_dir/deps"; }
 
 	[[ "$flag_install" ]] && { makepkg_flags="${makepkg_flags} -i"; }
 
@@ -73,6 +76,8 @@ aur.build() {
 			case "$pkg_repo" in
 				aur) "$0" -Si "$i";;
 			esac
+
+			echo "$i" >> "$cfg_db_dir/deps/$package"
 		}
 	done
 
@@ -81,6 +86,12 @@ aur.build() {
 
 aur.search() {
 	package-query --aur-url "$aur_url" -ASs "$1"
+}
+
+aur.init() {
+	for i in "$cfg_work_dir" "$cfg_db_dir"; do
+
+	done
 }
 
 while getopts "Ssidh" option; do
