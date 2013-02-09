@@ -21,14 +21,16 @@
 
 # config
 
-cfg_apps_dir='/home/trash/wine.d'
-cfg_tmp_dir='/tmp/scotch'
+cfg_apps_dir="$HOME"
+cfg_tmp_dir="/tmp/$USER/scotch"
 cfg_run_dir="$cfg_tmp_dir/run"
 cfg_log_dir="$cfg_tmp_dir/log"
 
 cfg_wine_debug_level='fixme-all'
 
 cfg_desktop="1280x720"
+
+[[ -f "$HOME/.scotchrc" ]] && { source "$HOME/.scotchrc"; }
 
 # functions
 
@@ -145,8 +147,13 @@ done
 [[ "$1" ]] && {
 	app="$1"
 } || {
-	scotch.usage
-	exit 5
+	exec_name=`basename $0`
+	[[ -e "$cfg_apps_dir/$exec_name" ]] && {
+		app="$exec_name"
+	} || {
+		scotch.usage
+		exit 5
+	}
 }
 
 [[ "$action" ]] || { action='launch'; }
