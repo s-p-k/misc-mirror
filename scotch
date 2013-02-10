@@ -21,7 +21,7 @@
 
 # config
 
-cfg_apps_dir="$HOME"
+cfg_apps_dir="$HOME/.scotch.d"
 cfg_tmp_dir="/tmp/$USER/scotch"
 cfg_run_dir="$cfg_tmp_dir/run"
 cfg_log_dir="$cfg_tmp_dir/log"

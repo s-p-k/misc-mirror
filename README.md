@@ -85,3 +85,12 @@ A wine helper designed mostly for games and apps that need specific configuratio
 	
 	* Scotch takes the app binary from /home/trash/wine.d/${app}/.app_bin. The path is relative to the app dir.
 	** You should really create /home/trash/wine.d/.template for scotch to copy it into new prefixes.
+
+Another cool feature (shamelessly ripped off from busybox) is that if the scotch's script name (`basename $0`) is the name of one of the wine prefixes in ${cfg_apps_dir}, it will take the name of the script as the prefix name:
+
+	[fbt@cetaganda ~]$ cd ~/bin
+	[fbt@cetaganda bin]$ ln -s scotch steam-win
+	[fbt@cetaganda bin]$ steam-win
+	[scotch] Launching steam-win...
+	[fbt@cetaganda bin]$ steam-win -k
+	[scotch] Killing steam-win...
