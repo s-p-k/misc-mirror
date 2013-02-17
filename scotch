@@ -39,6 +39,7 @@ scotch.usage() {
 	echo "Usage: `basename $0` [-lnks] <app>"
 	echo "Flags:"
 	echo "	-l			Launch the app (default).*"
+	echo "	-L			List available apps"
 	echo "	-n			Create a new app dir in $cfg_apps_dir.**"
 	echo "	-k			Kill all processes in the wine prefix of an app."
 	echo "	-s			Get a shell with all environment variables ready to work with the wine prefix."
@@ -125,16 +126,21 @@ scotch.shell() {
 	$SHELL
 }
 
+scotch.list() {
+	ls "$cfg_apps_dir"
+}
+
 # main
 
 for i in "$cfg_run_dir" "$cfg_log_dir"; do
 	mkdir -p "$i" || { scotch.err "$i does not exist and cannot be created."; exit 7; }
 done
 
-while getopts "hlsnkd" option; do
+while getopts "hlsnkdL" option; do
 	case "$option" in
 		s) action='shell';;
 		l) action='launch';;
+		L) action='list';;
 		n) action='new';;
 		k) action='kill';;
 		d) flag_nodesktop='1';;
@@ -144,19 +150,22 @@ done
 
 [[ "$OPTIND" ]] && { shift $[OPTIND-1]; }
 
-[[ "$1" ]] && {
-	app="$1"
-} || {
-	exec_name=`basename $0`
-	[[ -e "$cfg_apps_dir/$exec_name" ]] && {
-		app="$exec_name"
-	} || {
-		scotch.usage
-		exit 5
-	}
-}
-
+app="$1"
 [[ "$action" ]] || { action='launch'; }
+
+for i in shell launch new kill; do
+	[[ "$action" == "$i" ]] && {
+		[[ "$app" ]] || {
+			exec_name=`basename $0`
+			[[ -e "$cfg_apps_dir/$exec_name" ]] && {
+				app="$exec_name"
+			} || {
+				scotch.err "$i requires one or more arguments. See $0 -h for details"
+				exit 5
+			}
+		}
+	}
+done
 
 scotch.$action
 
