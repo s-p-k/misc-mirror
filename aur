@@ -23,7 +23,7 @@ cfg_work_dir="$HOME/.aur"
 cfg_db_dir="$cfg_work_dir/.db"
 aur_url="https://aur.archlinux.org"
 aur_pkg_url="${aur_url}/packages"
-makepkg_flags='-s'
+makepkg_flags='-irs'
 
 aur.usage() {
 cat << EOF
@@ -90,7 +90,7 @@ aur.search() {
 
 aur.init() {
 	for i in "$cfg_work_dir" "$cfg_db_dir"; do
-
+		[[ -e "$i" ]] || { mkdir -p "$i"; }
 	done
 }
 

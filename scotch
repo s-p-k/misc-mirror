@@ -25,6 +25,7 @@ cfg_apps_dir="$HOME/.scotch.d"
 cfg_tmp_dir="/tmp/$USER/scotch"
 cfg_run_dir="$cfg_tmp_dir/run"
 cfg_log_dir="$cfg_tmp_dir/log"
+cfg_bin_dir="$cfg_apps_dir/.bin"
 
 cfg_wine_debug_level='fixme-all'
 
@@ -111,6 +112,8 @@ scotch.new() {
 		mkdir -p "$cfg_apps_dir/$app"
 	}
 	
+	ln -s "$0" "$cfg_bin_dir/$app"
+
 	"$0" -s "$app"
 }
 
@@ -132,7 +135,7 @@ scotch.list() {
 
 # main
 
-for i in "$cfg_run_dir" "$cfg_log_dir"; do
+for i in "$cfg_run_dir" "$cfg_log_dir" "$cfg_bin_dir"; do
 	mkdir -p "$i" || { scotch.err "$i does not exist and cannot be created."; exit 7; }
 done
 
