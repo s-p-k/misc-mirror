@@ -128,7 +128,9 @@ scotch.new() {
 
 scotch.install() {
 	for i in `ls "$cfg_apps_dir"`; do
-		ln -s "$0" "$cfg_bin_dir/$i"
+		[[ -e "$cfg_bin_dir/$i" ]] || {
+			ln -vs "$0" "$cfg_bin_dir/$i"
+		}
 	done
 }
 
@@ -148,13 +150,37 @@ scotch.list() {
 	ls "$cfg_apps_dir"
 }
 
+scotch.build() {
+	[[ "$cfg_vintner" ]] || { cfg_vintner=`which vintner`; }
+	[[ "$cfg_vintner" ]] || {
+		scotch.msg "vintner is required for this function to work, but I can't find it anywhere."
+		scotch.msg "Either specify a custom location with \$cfg_vintner or add it to \$PATH."
+		scotch.msg "In case you didn't get this script bundled with vintner, you can find it here: https://github.com/fbt/misc."
+	}
+
+	[[ -e "$cfg_apps_dir/$app" ]] || {
+		scotch.msg "$app not found in $cfg_apps_dir"
+		return 1
+	}
+
+	scotch.env
+	cd "$cfg_apps_dir/$app"
+
+	scotch.msg "Building custom wine for ${app}..."
+	"$cfg_vintner" -P "$cfg_apps_dir/$app/opt" "$@" || {
+		scotch.err 'vintner failed'
+		return 1
+	}
+	scotch.msg "done"
+}
+
 # main
 
 for i in "$cfg_run_dir" "$cfg_log_dir" "$cfg_bin_dir"; do
 	mkdir -p "$i" || { scotch.err "$i does not exist and cannot be created."; exit 7; }
 done
 
-while getopts "hlsnkdLWi" option; do
+while getopts "slLnkibdWh" option; do
 	case "$option" in
 		s) action='shell';;
 		l) action='launch';;
@@ -162,6 +188,7 @@ while getopts "hlsnkdLWi" option; do
 		n) action='new';;
 		k) action='kill';;
 		i) action='install';;
+		b) action='build';;
 		d) flag_nodesktop='1';;
 		W) flag_nocustomwine='1';;
 		h|?) scotch.usage; exit 3;;
@@ -170,23 +197,19 @@ done
 
 [[ "$OPTIND" ]] && { shift $[OPTIND-1]; }
 
-app="$1"
 [[ "$action" ]] || { action='launch'; }
 
-for i in shell launch new kill; do
+for i in shell launch new kill build; do
 	[[ "$action" == "$i" ]] && {
-		[[ "$app" ]] || {
-			exec_name=`basename $0`
-			[[ -e "$cfg_apps_dir/$exec_name" ]] && {
-				app="$exec_name"
-			} || {
-				scotch.err "$i requires one or more arguments. See $0 -h for details"
-				exit 5
-			}
-		}
+		self_exec_name=`basename $0`
+		for i in `ls "$cfg_apps_dir"`; do
+			[[ "$i" == "$self_exec_name" ]] && { app="$self_exec_name"; }
+		done
 	}
 done
 
-scotch.$action
+[[ "$app" ]] || { app="$1"; shift; }
+
+scotch.$action "$@"
 
 exit "$?"

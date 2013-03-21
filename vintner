@@ -125,6 +125,11 @@ done
 
 wine_version="$1"
 
+[[ "$wine_version" ]] || {
+	vintner.usage
+	exit 7
+}
+
 vintner.init || { exit 3; }
 vintner.build || { exit 5; }
 vintner.msg 'vintner done'
