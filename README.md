@@ -53,6 +53,7 @@ A wine helper designed mostly for games and apps that need specific configuratio
 	Usage: scotch [-lnks] <app>
 	Flags:
 		-l          Launch the app (default).*
+		-a			Provide an alternative executabe (relative to app/)
 		-n          Create a new app dir in /home/trash/wine.d.**
 		-k          Kill all processes in the wine prefix of an app.
 		-s          Get a shell with all environment variables ready to work with the wine prefix.

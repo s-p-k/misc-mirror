@@ -40,6 +40,7 @@ scotch.usage() {
 	echo "Usage: `basename $0` [-lnks] <app>"
 	echo "Flags:"
 	echo "	-l			Launch the app (default).*"
+	echo "	-a			Provide an alternative executabe (relative to app/)"
 	echo "	-L			List available apps"
 	echo "	-n			Create a new app dir in $cfg_apps_dir.**"
 	echo "	-k			Kill all processes in the wine prefix of an app."
