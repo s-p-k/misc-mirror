@@ -16,20 +16,6 @@ The help information that the scripts give is dynamic and is provided here only 
 Scripts
 =======
 
-gb
---
-
-Gelbooru/Danbooru tag browser/downloader script.
-
-Danbooru requires you to log in to use the API, so gb supports authorization and using your username and/or password hash from a configuration file:
-
-	$ cat ~/.gbrc
-	danbooru_username='myusername'
-	danbooru_pwhash='mypwhash'
-
-It is, for obvious reasons, not recommended to store your hash in a file that is readable by anyone except you:
-	$ chmod 600 ~/.gbrc
-
 sup
 ---
 A simple file upload script for [ZFH](https://zfh.so)
