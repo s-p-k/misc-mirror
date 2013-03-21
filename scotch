@@ -73,8 +73,8 @@ scotch.env() {
 		}
 	}
 
-	export app_bin=`cat $cfg_apps_dir/$app/.app_bin | cut -d ' ' -f 1`
-	export app_bin_args=`cat $cfg_apps_dir/$app/.app_bin | cut -d ' ' -f 2-`
+	[[ "$app_bin" ]] || { export app_bin=`cat $cfg_apps_dir/$app/.app_bin | cut -d ' ' -f 1`; }
+	[[ "$app_bin_args" ]] || { export app_bin_args=`cat $cfg_apps_dir/$app/.app_bin | cut -d ' ' -f 2-`; }
 }
 
 scotch.launch() {
@@ -181,7 +181,7 @@ for i in "$cfg_run_dir" "$cfg_log_dir" "$cfg_bin_dir"; do
 	mkdir -p "$i" || { scotch.err "$i does not exist and cannot be created."; exit 7; }
 done
 
-while getopts "slLnkibdWh" option; do
+while getopts "slLnkibdWha:" option; do
 	case "$option" in
 		s) action='shell';;
 		l) action='launch';;
@@ -190,8 +190,12 @@ while getopts "slLnkibdWh" option; do
 		k) action='kill';;
 		i) action='install';;
 		b) action='build';;
+
+		a) alt_exec="$OPTARG";;
+
 		d) flag_nodesktop='1';;
 		W) flag_nocustomwine='1';;
+
 		h|?) scotch.usage; exit 3;;
 	esac
 done
@@ -210,6 +214,11 @@ for i in shell launch new kill build; do
 done
 
 [[ "$app" ]] || { app="$1"; shift; }
+
+[[ "$alt_exec" ]] && {
+	app_bin="$alt_exec"
+	app_bin_args="$@"
+}
 
 scotch.$action "$@"
 
