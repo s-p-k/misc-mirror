@@ -106,13 +106,14 @@ scotch.launch() {
 }
 
 scotch.new() {
+	[[ -e "$cfg_apps_dir/$app" ]] && {
+		scotch.err "$cfg_apps_dir/$app already exists!"
+		return 1
+	}
+
 	[[ -d "$cfg_apps_dir/.template" ]] && {
-		[[ -e "$cfg_apps_dir/$app" ]] && {
-			scotch.err "$cfg_apps_dir/$app already exists!"
-			return 1
-		} || {
-			cp -r "$cfg_apps_dir/.template" "$cfg_apps_dir/$app"
-		}
+		scotch.msg "Cloning $cfg_apps_dir/.template into $cfg_apps_dir/${app}..."
+		cp -r "$cfg_apps_dir/.template" "$cfg_apps_dir/$app"
 	} || {
 		scotch.msg "(warn) $cfg_apps_dir/.template not found. If you create a reference WINEPREFIX and put it there, it will make your life a lot easier :)"
 		mkdir -p "$cfg_apps_dir/$app"
