@@ -81,6 +81,6 @@ A script that builds wine with specified patches. Nothing special here
 	Vintner — wine builder
 	Usage: vintner [-p <patch>] [-P <prefix>] [-c <configure_options>]
 	Flags:
-	-p <patch>					Specify a patch file to apply. Multiple patches can be applied at the same time.
-	-P <prefix>					Specify a prefix ($cfg_prefix) to install to. Vintner won't run “make install” if this parameter isn't set by this flag or in /home/fbt/.vintnerrc.
-	-c <configure_options>		Specify additional configure options.
+		-p <patch>					Specify a patch file to apply. Multiple patches can be applied at the same time.
+		-P <prefix>					Specify a prefix ($cfg_prefix) to install to. Vintner won't run “make install” if this parameter isn't set by this flag or in /home/fbt/.vintnerrc.
+		-c <configure_options>		Specify additional configure options.
