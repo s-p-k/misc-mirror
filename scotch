@@ -59,9 +59,15 @@ scotch.die() {
 scotch.env() {
 	export WINEPREFIX="$cfg_apps_dir/$app/wine"
 	export WINEDEBUG="$cfg_wine_debug_level"
-	
-	[[ -d "$cfg_apps_dir/opt/wine/bin" ]] && {
-		export PATH="$cfg_apps_dir/$app/opt/wine/bin:$PATH"
+
+	[[ -d "$cfg_apps_dir/$app/opt/bin" ]] && {
+		[[ "$flag_nocustomwine" ]] && {
+			scotch.msg "Custom wine install found, but overriden by -W, ignoring"
+		} || {
+			scotch.msg "Custom wine install found, adding it to \$PATH..."
+			export PATH="$cfg_apps_dir/$app/opt/bin:$PATH"
+			scotch.msg "done: using `which wine`"
+		}
 	}
 
 	export app_bin=`cat $cfg_apps_dir/$app/.app_bin | cut -d ' ' -f 1`
@@ -139,7 +145,7 @@ for i in "$cfg_run_dir" "$cfg_log_dir" "$cfg_bin_dir"; do
 	mkdir -p "$i" || { scotch.err "$i does not exist and cannot be created."; exit 7; }
 done
 
-while getopts "hlsnkdL" option; do
+while getopts "hlsnkdLW" option; do
 	case "$option" in
 		s) action='shell';;
 		l) action='launch';;
@@ -147,6 +153,7 @@ while getopts "hlsnkdL" option; do
 		n) action='new';;
 		k) action='kill';;
 		d) flag_nodesktop='1';;
+		W) flag_nocustomwine='1';;
 		h|?) scotch.usage; exit 3;;
 	esac
 done
