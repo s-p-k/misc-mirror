@@ -43,6 +43,7 @@ scotch.usage() {
 	echo "	-a			Provide an alternative executabe (relative to app/)"
 	echo "	-L			List available apps"
 	echo "	-n			Create a new app dir in $cfg_apps_dir.**"
+	echo "	-t			Specify an alternative prefix template."
 	echo "	-k			Kill all processes in the wine prefix of an app."
 	echo "	-s			Get a shell with all environment variables ready to work with the wine prefix."
 	echo "	-W			Ignore — if present — custom wine installation"
@@ -110,6 +111,12 @@ scotch.launch() {
 }
 
 scotch.new() {
+	[[ "$alt_template" ]] && {
+		prefix_template="$alt_template"
+	} || {
+		prefix_template="$cfg_apps_dir/.template"
+	}
+
 	[[ -e "$cfg_apps_dir/$app" ]] && {
 		scotch.err "$cfg_apps_dir/$app already exists!"
 		return 1
@@ -119,7 +126,7 @@ scotch.new() {
 		scotch.msg "Cloning $cfg_apps_dir/.template into $cfg_apps_dir/${app}..."
 		cp -r "$cfg_apps_dir/.template" "$cfg_apps_dir/$app"
 	} || {
-		scotch.msg "(warn) $cfg_apps_dir/.template not found. If you create a reference WINEPREFIX and put it there, it will make your life a lot easier :)"
+		scotch.msg "(warn) Prefix template ($prefix_template) not found, a new prefix will be created."
 		mkdir -p "$cfg_apps_dir/$app"
 	}
 	
@@ -182,7 +189,7 @@ for i in "$cfg_run_dir" "$cfg_log_dir" "$cfg_bin_dir"; do
 	mkdir -p "$i" || { scotch.err "$i does not exist and cannot be created."; exit 7; }
 done
 
-while getopts "slLnkibdWha:" option; do
+while getopts "slLnkibdWha:t:" option; do
 	case "$option" in
 		s) action='shell';;
 		l) action='launch';;
@@ -193,6 +200,7 @@ while getopts "slLnkibdWha:" option; do
 		b) action='build';;
 
 		a) alt_exec="$OPTARG";;
+		t) alt_template="$OPTARG";;
 
 		d) flag_nodesktop='1';;
 		W) flag_nocustomwine='1';;

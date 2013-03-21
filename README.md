@@ -55,6 +55,7 @@ A wine helper designed mostly for games and apps that need specific configuratio
 		-l          Launch the app (default).*
 		-a			Provide an alternative executabe (relative to app/)
 		-n          Create a new app dir in /home/trash/wine.d.**
+		-t			Specify an alternative prefix template.
 		-k          Kill all processes in the wine prefix of an app.
 		-s          Get a shell with all environment variables ready to work with the wine prefix.
 		-W			Ignore — if present — custom wine installation.
