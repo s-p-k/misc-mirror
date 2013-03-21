@@ -44,6 +44,8 @@ scotch.usage() {
 	echo "	-n			Create a new app dir in $cfg_apps_dir.**"
 	echo "	-k			Kill all processes in the wine prefix of an app."
 	echo "	-s			Get a shell with all environment variables ready to work with the wine prefix."
+	echo "	-W			Ignore — if present — custom wine installation"
+	echo "	-i			Populate $cfg_bin_dir with links to $0"
 	echo
 	echo "* Scotch takes the app binary from $cfg_apps_dir/\${app}/.app_bin. The path is relative to the app dir."
 	echo "** You should really create $cfg_apps_dir/.template for scotch to copy it into new prefixes."
@@ -124,6 +126,12 @@ scotch.new() {
 	"$0" -s "$app"
 }
 
+scotch.install() {
+	for i in `ls "$cfg_apps_dir"`; do
+		ln -s "$0" "$cfg_bin_dir/$i"
+	done
+}
+
 scotch.kill() {
 	scotch.msg "Killing $app..."
 	scotch.env
@@ -146,13 +154,14 @@ for i in "$cfg_run_dir" "$cfg_log_dir" "$cfg_bin_dir"; do
 	mkdir -p "$i" || { scotch.err "$i does not exist and cannot be created."; exit 7; }
 done
 
-while getopts "hlsnkdLW" option; do
+while getopts "hlsnkdLWi" option; do
 	case "$option" in
 		s) action='shell';;
 		l) action='launch';;
 		L) action='list';;
 		n) action='new';;
 		k) action='kill';;
+		i) action='install';;
 		d) flag_nodesktop='1';;
 		W) flag_nocustomwine='1';;
 		h|?) scotch.usage; exit 3;;
