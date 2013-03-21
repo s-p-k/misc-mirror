@@ -58,18 +58,6 @@ Yet another AUR wrapper
 	OTHER:
 	-h     Show this message
 
-ait
----
-Arch Install Tool: a simple install script for Arch Linux.
-Since AIF is considered obsolete and is not included in the new install images, I've used this as an excuse to write another shitty script. What's the killer
-feature? Well, it can install openrc and confugure it for you somewhat. It even adds a bootloader entry :3
-
-It makes more sense to download it from the livecd:
-
-	# dhcpcd
-	# wget zfh.so/ait.sh
-	# bash ait.sh
-
 scotch
 ------
 A wine helper designed mostly for games and apps that need specific configuration that potentially conflicts with others.
@@ -96,3 +84,15 @@ Another cool feature (shamelessly ripped off from busybox) that I can't explain 
 	[scotch] Launching steam-win...
 	[fbt@cetaganda bin]$ steam-win -k
 	[scotch] Killing steam-win...
+
+vintner
+-------
+A script that builds wine with specified patches. Nothing special here
+
+	$ vintner -h
+	Vintner — wine builder
+	Usage: vintner [-p <patch>] [-P <prefix>] [-c <configure_options>]
+	Flags:
+	-p <patch>					Specify a patch file to apply. Multiple patches can be applied at the same time.
+	-P <prefix>					Specify a prefix ($cfg_prefix) to install to. Vintner won't run “make install” if this parameter isn't set by this flag or in /home/fbt/.vintnerrc.
+	-c <configure_options>		Specify additional configure options.

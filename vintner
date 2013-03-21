@@ -1,0 +1,130 @@
+#!/bin/bash
+
+cfg_cache_dir="$HOME/.cache/vintner"
+cfg_tmp_dir="/tmp/$USER/vintner"
+cfg_log_dir="$cfg_tmp_dir/log"
+cfg_build_dir="$cfg_tmp_dir/build"
+cfg_git_repo='git://source.winehq.org/git/wine.git'
+cfg_download_mirror='http://ibiblio.org/pub/linux/system/emulators/wine'
+cfg_prefix="$HOME/.local"
+
+[[ -f "$HOME/.vintnerrc" ]] && { source "$HOME/.vintnerrc"; }
+
+vintner.usage() {
+echo "Vintner — wine builder"
+echo "Usage: `basename $0` [-p <patch>] [-P <prefix>] [-c <configure_options>]"
+echo "Flags:"
+echo "	-p <patch>					Specify a patch file to apply. Multiple patches can be applied at the same time."
+echo "	-P <prefix>					Specify a prefix (\$cfg_prefix) to install to. Vintner won't run “make install” if this parameter isn't set by this flag or in "$HOME/.vintnerrc"."
+echo "	-c <configure_options>		Specify additional configure options."
+}
+
+vintner.msg() { echo "[vintner] $1"; }
+vintner.err() { vintner.msg "(error) $1" >&2; }
+
+vintner.init() {
+	for i in "$cfg_log_dir" "$cfg_cache_dir" "$cfg_build_dir"; do
+		[[ -e "$i" ]] || {
+			mkdir -p "$i" || {
+				vintner.err "Cannot create $i, aborting"
+				return 1
+			}
+		}
+	done
+}
+
+vintner.download() {
+	case "$wine_version" in
+		git)
+			[[ -d "$cfg_cache_dir/wine-git" ]] && {
+				cd "$cfg_cache_dir/wine-git"
+				git pull || { return 1; }
+			} || {
+				git clone "$cfg_git_repo" "$cfg_cache_dir/wine-git"
+			}
+		;;
+
+		*)
+			[[ -f "$cfg_cache_dir/wine-${wine_version}.tar.bz2" ]] || {
+				vintner.msg "Downloading wine version ${wine_version}..."
+				wget "$cfg_download_mirror/wine-${wine_version}.tar.bz2" -O "$cfg_cache_dir/wine-${wine_version}.tar.bz2" &>"$cfg_log_dir/wget.log" && {
+					vintner.msg 'done'
+				} || {
+					vintner.err 'wget failed:'
+					cat "$cfg_log_dir/wget.log"
+					return 1
+				}
+			}
+		;;
+	esac
+
+	return 0
+}
+
+vintner.make() {
+	make -j5 depend &>"$cfg_log_dir/make_depend.log" || return 1
+	make -j5 &>"$cfg_log_dir/make.log" || return 1
+	[[ "$cfg_prefix" ]] && {
+		make -j5 install &>"$cfg_log_dir/make_install.log" || return 1
+	}
+}
+
+vintner.build() {
+	cd "$cfg_build_dir"
+	vintner.download || { return 1; }
+
+	vintner.msg "Extracting..."
+	case "$wine_version" in
+		git) cp -r "$cfg_cache_dir/wine-git" .;;
+		*) bzip2 -cd "$cfg_cache_dir/wine-${wine_version}.tar.bz2" | tar xf -
+	esac
+
+	cd "wine-$wine_version"
+
+	for i in "${patchlist[@]}"; do
+		vintner.msg "Applying patch from $i..."
+		git apply "$i" &>>"$cfg_log_dir/patch.log" || {
+			vintner.err "failed"
+			return 1
+		}
+
+		./tools/make_requests
+		vintner.msg 'done'
+	done
+
+	vintner.msg "Configuring..."
+	./configure --prefix="$cfg_prefix" ${configure_options} &> "$cfg_log_dir/configure.log" || {
+		vintner.err "failed"
+		return 1
+	}
+	vintner.msg 'done'
+
+	make_start_time=`date +%s`
+
+	vintner.msg "Making wine..."
+	vintner.make || {
+		vintner.err "failed"
+		return 1
+	}
+
+	make_end_time=`date +%s`
+
+	vintner.msg "done in $((make_end_time-make_start_time)) seconds"
+}
+
+while getopts "hp:P:c:" option; do
+	case "$option" in
+		p) patchlist+=( "$OPTARG" );;
+		P) cfg_prefix="$OPTARG";;
+		c) cfg_options="$OPTARG";;
+		h|*) vintner.usage; exit 1;;
+	esac
+done
+
+[[ "$OPTIND" ]] && { shift $(($OPTIND-1)); }
+
+wine_version="$1"
+
+vintner.init || { exit 3; }
+vintner.build || { exit 5; }
+vintner.msg 'vintner done'
