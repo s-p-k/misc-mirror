@@ -72,6 +72,7 @@ A wine helper designed mostly for games and apps that need specific configuratio
 		-s          Get a shell with all environment variables ready to work with the wine prefix.
 		-W			Ignore — if present — custom wine installation.
 		-i			Populate /home/trash/wine.d/.bin with links to /home/fbt/bin/scotch.
+		-b			Build a custom wine version for an app with vintner.
 	
 	* Scotch takes the app binary from /home/trash/wine.d/${app}/.app_bin. The path is relative to the app dir.
 	** You should really create /home/trash/wine.d/.template for scotch to copy it into new prefixes.
