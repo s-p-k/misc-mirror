@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+# Copyright (c) 2012 fbt <fbt@fleshless.org>
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#   - Redistributions of source code must retain the above copyright notice, 
+#       this list of conditions and the following disclaimer.
+#   - Redistributions in binary form must reproduce the above copyright notice,
+#       this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+# FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+# IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+# OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+cfg_depends=( 'zip' 'unzip' 'mktemp' )
+tmpdir=`mktemp -d /tmp/miner_XXXXXX`
+
+miner.usage() {
+	echo "Usage: `basename $0` <zip0> <zip1>"
+}
+miner.msg() { echo "[miner] $1"; }
+miner.err() { miner.msg "(error) $1" >&2; }
+
+miner.depends() {
+	local rc='0'
+
+	for i in "${cfg_depends[@]}"; do
+		which "$i" &>>/tmp/miner.log || {
+			[[ -f "$i" ]] || {
+				miner.err "$i is not found but is required to proceed."
+				local rc='1'
+			}
+		}
+	done
+
+	return "$rc"
+}
+
+miner.zip() {
+	local rcode='0'
+
+	zip $@ &>>/tmp/miner.log
+	[[ "$?" -gt 2 ]] && { local rcode='1'; }
+
+	return "$rcode"
+}
+
+miner.unzip() {
+	local rcode='0'
+
+	unzip $@ &>>/tmp/miner.log
+	[[ "$?" -gt 2 ]] && { local rcode='1'; }
+
+	return "$rcode"
+}
+
+miner.patch() {
+	[[ -e "$tmpdir" ]] && {
+		[[ -d "$tmpdir" ]] && {
+			[[ -z "`ls -A "$tmpdir"`" ]] || {
+				miner.err "$tmpdir exists and is not empty"
+				return 1
+			}
+		} || {
+			miner.err "$tmpdir exists and is not a directory"
+			return 1
+		}
+	} || {
+		mkdir -p "$tmpdir"
+	}
+
+	miner.msg "Patching $zip0 with ${zip1}... "
+
+	cd "$tmpdir"
+
+	miner.unzip -o "$zip0" || { return 1; }
+	miner.unzip -o "$zip1" || { return 1; }
+	rm "$zip0" || { return 1; }
+	miner.zip -r "$zip0" . || { return 1; }
+}
+
+miner.cleanup() {
+	rm -r "$tmpdir"
+}
+
+while getopts "h" option; do
+	case "$option" in
+		h|?|*) miner.usage; exit 3;;
+	esac
+done
+
+[[ "$OPTIND" ]] && { shift $[OPTIND-1]; }
+
+mod_archive=`realpath "$1"`
+
+zip0=`realpath "$1"`
+zip1=`realpath "$2"`
+
+[[ "$zip0" ]] || { miner.usage; exit 1; }
+[[ "$zip1" ]] || { miner.usage; exit 1; }
+
+[[ -f "$zip0" ]] || { miner.err "$zip0 does not exist!"; }
+[[ -f "$zip1" ]] || { miner.err "$zip1 does not exist!"; }
+
+cp "$zip0" "${zip0}.b"
+
+miner.depends || {
+	miner.err "One or more dependencies is not met. Exiting."
+	exit 5
+}
+
+miner.patch && {
+	miner.msg "success"
+	miner.cleanup
+} || {
+	miner.err "Something went wrong. See /tmp/miner.log for details"
+	exit 7
+}
