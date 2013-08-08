@@ -98,7 +98,8 @@ done
 
 [[ "$OPTIND" ]] && { shift $[OPTIND-1]; }
 
-mod_archive=`realpath "$1"`
+[[ "$1" ]] || { miner.usage; exit 1; }
+[[ "$2" ]] || { miner.usage; exit 1; }
 
 zip0=`realpath "$1"`
 zip1=`realpath "$2"`
