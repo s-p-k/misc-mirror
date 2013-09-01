@@ -83,6 +83,10 @@ miner.patch() {
 	miner.unzip -o "$zip0" || { return 1; }
 	miner.unzip -o "$zip1" || { return 1; }
 	rm "$zip0" || { return 1; }
+	for i in "${rmlist[@]}"; do
+			miner.msg "Removing ${i}..."
+			rm -r "$i"
+	done
 	miner.zip -r "$zip0" . || { return 1; }
 }
 
@@ -90,13 +94,17 @@ miner.cleanup() {
 	rm -r "$tmpdir"
 }
 
-while getopts "h" option; do
+while getopts "hr:" option; do
 	case "$option" in
+		r) rmlist+=( "$OPTARG" );;
 		h|?|*) miner.usage; exit 3;;
 	esac
 done
 
-[[ "$OPTIND" ]] && { shift $[OPTIND-1]; }
+[[ "$OPTIND" ]] && { shift $((OPTIND-1)); }
+
+echo "${rmlist[@]}"
+echo "args: $@"
 
 mod_archive=`realpath "$1"`
 
