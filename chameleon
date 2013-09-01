@@ -146,8 +146,6 @@ chameleon.get_bg_manager() {
 	}
 }
 
-# main
-
 chameleon.scan_dir() {
 	local file_type
 
@@ -175,6 +173,8 @@ chameleon.get_image() {
 }
 
 chameleon.args `chameleon.getopt "$@"` || exit 3
+
+# main
 
 [[ "$cfg_bg_manager" ]] || {
 	chameleon.get_bg_manager || { exit 1; }
