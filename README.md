@@ -43,3 +43,21 @@ Yet another AUR wrapper
 
 	OTHER:
 	-h     Show this message
+
+chameleon
+---------
+A background changer
+
+	$ chameleon --help
+	Usage: chameleon [options] <target>
+	Options:
+		-m|--bg-manager			# Specify a bg manager to use. The default is feh.
+		-M|--bg-mode			# Specify the bg mode.
+		-C|--color				# Specify a color for the background. If used without a target image, fills the background with the color. Needs imagemagick for that though.
+		-d|--daemon				# Daemon mode: sets the background periodically. Useful if the taget is a dir.
+		-D|--daemon-delay		# Delay for periodic bg changing, in seconds (default: 900).
+		-r|--recursive			# If the target is a dir, search for files recursively.
+		-v|--verbose			# Be verbose.
+		-h|--help				# Show this message.
+	Modes:
+		feh: center, fill, max, scale, tile.

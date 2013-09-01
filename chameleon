@@ -1,0 +1,180 @@
+#!/usr/bin/env bash
+
+### Config ###
+
+cfg_bg_manager='feh'
+cfg_bg_managers=( 'feh' )
+
+### Finctions ###
+
+chameleon.msg() { echo "[chameleon] $1"; }
+chameleon.err() { chameleon.msg "(error) $1" >&2; }
+chameleon.debug() {
+    [[ "$cfg_mode_verbose" ]] && { chameleon.msg "(DEBUG) $1"; }
+}
+
+chameleon.usage() {
+	echo "Usage: ${0##*/} [options] [target]"
+	echo "Options:"
+	echo "	-m|--bg-manager			# Specify a bg manager to use. The default is feh."
+	echo "	-M|--bg-mode			# Specify the bg mode."
+	echo "	-C|--color				# Specify a color for the background. If used without a target image, fills the background with the color. Needs imagemagick for that though."
+	echo "	-d|--daemon				# Daemon mode: sets the background periodically. Useful if the taget is a dir."
+	echo "	-D|--daemon-delay		# Delay for periodic bg changing, in seconds (default: 900)."
+	echo "	-r|--recursive			# If the target is a dir, search for files recursively."
+	echo "	-v|--verbose			# Be verbose."
+	echo "	-h|--help				# Show this message."
+	echo "Modes:"
+	echo "	feh: center, fill, max, scale, tile."
+}
+
+chameleon.getopt() {
+	local keys
+
+	for i in "$@"; do
+		case "$i" in
+			--*) echo "$i";;
+
+			-*)
+				keys=( `echo "${i##*-}" | fold -w1` )
+
+				[[ "${#keys[@]}" -gt 1 ]] && {
+					for k in ${keys[@]}; do
+						echo "-${k}"
+					done
+				} || {
+					echo "$i"
+				}
+			;;
+
+			*) echo "$i";;
+		esac
+	done
+}
+
+chameleon.args() {
+	while [[ "$1" ]]; do
+		case "$1" in
+			-m|--bg-manager) cfg_bg_manager="$2"; shift;;
+			-M|--bg-mode) cfg_bg_mode="$2"; shift;;
+			-c|--config) cfg_cfg_file="$2"; shift;;
+			-C|--color) cfg_bg_color="$2"; shift;;
+			-d|--daemon) cfg_mode_daemon='true';;
+			-r|--recursive) cfg_mode_recursive='true';;
+			-D|--daemon-delay) cfg_daemon_delay="$2"; shift;;
+			-v|--verbose) cfg_mode_verbose='true';;
+			-h|--help) chameleon.usage; exit 0;;
+			-*) chameleon.usage; return 1;;
+			*) args+=( "$1" );;
+		esac
+		shift
+	done
+}
+
+chameleon.bg() {
+	local bgm_exec
+	local bgm_args
+
+	[[ "$image_file" ]] || {
+		chameleon.err "No image specified or found"
+		return 1
+	}
+
+	bgm_exec="`which $cfg_bg_manager 2>/dev/null`"
+
+	[[ "$cfg_bg_mode" ]] || { cfg_bg_mode='fill'; }
+
+	[[ "$bgm_exec" ]] || {
+		chameleon.err "Could not find $cfg_bg_manager in \$PATH"
+		return 1
+	}
+
+	case "$cfg_bg_manager" in
+		feh)
+			bgm_args+='--no-fehbg'
+
+			case "$cfg_bg_mode" in
+				center) bgm_args+=( '--bg-center' );;
+				fill) bgm_args+=( '--bg-fill' );;
+				max) bgm_args+=( '--bg-max' );;
+				scale) bgm_args+=( '--bg-scale' );;
+				tile) bgm_args+=( '--bg-tile' );;
+				*) chameleon.err "Unknown bg mode: $cfg_bg_mode"; return 1;;
+			esac
+
+			bgm_args+=( "$image_file" )
+		;;
+
+		*)
+			chameleon.err "I'm sure that $cfg_bg_manager is a great bg manager, but I can't work with it, sorry. May I recommend feh?"
+			return 1
+		;;
+	esac
+
+	chameleon.debug "Image: $image_file"
+
+	"$bgm_exec" "${bgm_args[@]}"
+}
+
+chameleon.daemon() {
+	[[ "$cfg_daemon_delay" ]] || { cfg_daemon_delay='900'; }
+
+	while :; do
+		image_file=`chameleon.get_image`
+		chameleon.bg
+		sleep "$cfg_daemon_delay"
+	done
+}
+
+chameleon.get_bg_manager() {
+	for i in "${cfg_bg_managers[@]}"; do
+		[[ "$cfg_bg_manager" ]] || {
+			which "$i" &>/dev/null && { cfg_bg_manager="$i"; }
+		}
+	done
+
+	[[ "$cfg_bg_manager" ]] || {
+		chameleon.err "Could not find a suitable background manager. May I recommend feh?"
+		return 1
+	}
+}
+
+# main
+
+chameleon.get_image() {
+	[[ -d "$target" ]] && {
+		[[ "$cfg_mode_recursive" ]] || { find_args+=( '-maxdepth 1' ); }
+		find_args+=( '-mindepth 1 -type f' )
+		find "$target" ${find_args[*]} | sort -R | head -1 || { return 1; }
+	} || {
+		echo "$target"
+	}
+}
+
+chameleon.args `chameleon.getopt "$@"` || exit 3
+
+[[ "$cfg_bg_manager" ]] || {
+	chameleon.get_bg_manager || { exit 1; }
+}
+
+target="${args[0]}"
+
+[[ "$target" ]] || {
+	[[ "$cfg_bg_color" ]] && {
+		convert -size 32x32 "xc:${cfg_bg_color}" '/tmp/bg.png'
+		cfg_bg_mode='tile'
+		target='/tmp/bg.png'
+	}
+}
+
+[[ "$target" ]] || {
+	chameleon.usage
+	exit 7
+}
+
+[[ "$cfg_mode_daemon" ]] && {
+	chameleon.daemon; exit 0
+} || {
+	image_file="`chameleon.get_image`"
+	chameleon.bg || exit 9
+}
