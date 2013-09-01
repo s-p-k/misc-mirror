@@ -117,12 +117,19 @@ chameleon.bg() {
 }
 
 chameleon.daemon() {
+	local last_image_file
+
 	[[ "$cfg_daemon_delay" ]] || { cfg_daemon_delay='900'; }
 
+	image_file=`chameleon.get_image`
+
 	while :; do
-		image_file=`chameleon.get_image`
-		chameleon.bg
-		sleep "$cfg_daemon_delay"
+		images=( `echo "${images[@]}" | sort -R` )
+		for i in "${images[@]}"; do
+			image_file="$i"
+			chameleon.bg
+			sleep "$cfg_daemon_delay"
+		done
 	done
 }
 
@@ -141,11 +148,27 @@ chameleon.get_bg_manager() {
 
 # main
 
+chameleon.scan_dir() {
+	local file_type
+
+	[[ "$cfg_mode_recursive" ]] || { find_args+=( '-maxdepth 1' ); }
+	find_args+=( '-mindepth 1 -type f' )
+	find "$1" ${find_args[*]} | while read line; do
+		file_type=`file -ib "$line" | cut -d "/" -f 1`
+		[[ "$file_type" == "image" ]] && {
+			echo "$line"
+		}
+	done
+}
+
+chameleon.random_image() {
+	local random_number="$((RANDOM % ${#images[@]}))"
+	echo "${images[$random_number]}"
+}
+
 chameleon.get_image() {
 	[[ -d "$target" ]] && {
-		[[ "$cfg_mode_recursive" ]] || { find_args+=( '-maxdepth 1' ); }
-		find_args+=( '-mindepth 1 -type f' )
-		find "$target" ${find_args[*]} | sort -R | head -1 || { return 1; }
+		chameleon.random_image
 	} || {
 		echo "$target"
 	}
@@ -170,6 +193,10 @@ target="${args[0]}"
 [[ "$target" ]] || {
 	chameleon.usage
 	exit 7
+}
+
+[[ -d "$target" ]] && {
+	images=( `chameleon.scan_dir "$target"` )
 }
 
 [[ "$cfg_mode_daemon" ]] && {
