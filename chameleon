@@ -136,14 +136,10 @@ chameleon.bg() {
 }
 
 chameleon.daemon() {
-	local last_image_file
-
 	[[ "$cfg_daemon_delay" ]] || { cfg_daemon_delay='900'; }
 
-	image_file=`chameleon.get_image`
-
 	while :; do
-		images=( `echo "${images[@]}" | sort -R` )
+		images=( `for i in "${images[@]}"; do echo "$i"; done | sort -R` )
 		for i in "${images[@]}"; do
 			image_file="$i"
 			chameleon.bg
@@ -215,7 +211,7 @@ target="${args[0]}"
 }
 
 [[ -d "$target" ]] && {
-	images=( `chameleon.scan_dir "$target"` )
+	images=( `chameleon.scan_dir "$target" | sort -R` )
 }
 
 [[ "$cfg_mode_daemon" ]] && {
