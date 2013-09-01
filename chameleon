@@ -139,7 +139,7 @@ chameleon.daemon() {
 	[[ "$cfg_daemon_delay" ]] || { cfg_daemon_delay='900'; }
 
 	while :; do
-		images=( `for i in "${images[@]}"; do echo "$i"; done | sort -R` )
+		images=( `chameleon.scan_dir "$target" | sort -R` )
 		for i in "${images[@]}"; do
 			image_file="$i"
 			chameleon.bg
