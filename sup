@@ -26,9 +26,6 @@ cfg_url_regex='^[a-z]+://.+'
 cfg_tmp_dir="/tmp/$USER/sup"
 cfg_script_url='http://zfh.so/upload'
 
-cfg_default_tags='sup'
-cfg_default_title="Uploaded: `date +%Y.%m.%d\ at\ %H:%M:%S`"
-
 [[ -f $HOME/.suprc ]] && { source $HOME/.suprc; }
 
 sup.msg() { echo "[sup] $1"; }
@@ -48,12 +45,13 @@ sup.upload() {
 	[[ "$file_title" ]] || { file_title="$cfg_default_title"; }
 
 	curl -F file="@$file" \
-		-F tags="$file_tags" \
 		-F upload_mode='api' \
 		-F submit="" \
-		"$cfg_script_url" -s -L -A 'Sup Phost'
+		"$cfg_script_url" -s -L -A 'Sup Phost' || { return 1; }
 
 	[[ "$flag_rm" ]] && { rm "$file"; }
+
+	return 0
 }
 
 sup.scrot() {
@@ -77,11 +75,8 @@ sup.exclude() {
 
 sup.if_url() { echo "$1" | grep -oE "$cfg_url_regex" &>/dev/null; }
 
-while getopts "c:t:D:sFrRh" option; do
+while getopts "D:sFrRh" option; do
 	case "$option" in
-		c) file_title="$OPTARG";;
-		t) file_tags="$OPTARG";;
-
 		R) flag_rm='1';;
 
 		s) flag_scrot='1';;
