@@ -32,7 +32,7 @@ sup.msg() { echo "[sup] $1"; }
 sup.err() { sup.msg "(error) $1" >&2; }
 
 sup.usage() {
-	echo "Usage: `basename $0` [-c title] [-t tags] [-RsF] [-D num] [file/url]"
+	echo "Usage: `basename $0` [-RsF] [-D num] [file/url]"
 }
 
 sup.env() {

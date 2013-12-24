@@ -21,8 +21,6 @@ sup
 A simple file upload script for [ZFH](https://zfh.so)
 
 	Usage: /home/fbt/bin/sup [-c title] [-t tags] [-RsF] [-D num] [file/url]
-		-c          Comment/title (deprecated, optional)
-		-t          File tags
 		-R          Set to remove file after uploading (local fs only, obviously)
 		-s          Grab a screenshot to upload instead of a file/url
 		-F          Make a fullscreen shot instead of a selected window/area
