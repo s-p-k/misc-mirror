@@ -1,120 +1,192 @@
 #!/usr/bin/env bash
-# Copyright (c) 2012 fbt <fbt@fleshless.org>
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#   - Redistributions of source code must retain the above copyright notice, 
-#       this list of conditions and the following disclaimer.
-#   - Redistributions in binary form must reproduce the above copyright notice,
-#       this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
-# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
-# FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
-# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
-# IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
-# OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-cfg_work_dir="$HOME/.aur"
-cfg_db_dir="$cfg_work_dir/.db"
-aur_url="https://aur.archlinux.org"
-aur_pkg_url="${aur_url}/packages"
-makepkg_flags='-irs'
-
-aur.usage() {
-cat << EOF
-$0 [options] [package]
-
-SYNC (-S):
--s		Search for a package
--i		Install a package after building it
--d		Download a package and don't build it. Implies no -i.
-
-OTHER:
--h		Show this message
-EOF
+## config
+[[ -e "$HOME/.config/aur.rc" ]] && {
+	source "$HOME/.config/aur.rc"
 }
 
-aur.die() { echo "$2"; exit "$1"; }
+cfg_work_dir="${cfg_work_dir:-$HOME/.aur}"
+cfg_aur_url="${cfg_aur_url:-https://aur.archlinux.org}"
+cfg_abs_tree="${cfg_abs_tree:-/var/abs}"
+cfg_makepkg_flags='-rs'
+cfg_libfbt_path="${cfg_libfbt_path:-/usr/lib/libfbt}"
+# /config
 
-aur.get() {
-	[[ -d "$cfg_work_dir" ]] || {
-		echo -n "My working directory does not exist, attempting to create it... "
-		mkdir -p "$cfg_work_dir" && {
-			echo "success"
-		} || {
-			aur.die 9 "failed"
-		}
+[[ -e "$cfg_libfbt_path" ]] || {
+	echo "This script depends on libfbt: https://github.com/fbt/libfbt"
+	exit 1
+}
+
+source "${cfg_libfbt_path}/libfbt.sh"
+
+aur.usage() {
+	echo "$0 [options] [packages]"
+
+	echo "SYNC (-S):"
+	echo "-s	# search"
+	echo "-d	# download only"
+	echo
+	echo "OTHER:"
+	echo "-h	# show this message"
+}
+
+aur.args() {
+	while [[ "$1" ]]; do
+		case "$1" in
+			-a) flag_aur_only='1';;
+			-S) action_group='sync';;
+			-s) action='search';;
+			-u) flag_update='1';;
+			-y)
+				lf.msg "Updating ABS..."
+				sudo abs &>/dev/null || {
+					lf.err 'Failed!'
+					return 1
+				}
+			;;
+
+			-w) flag_download_only='1';;
+			-b) flag_build='1';;
+			-h) aur.usage; exit;;
+			--) :;;
+			*) args+=( "$1" );;
+		esac
+		shift
+	done
+}
+
+aur.get_package() {
+#	local package_repo
+	[[ "$flag_aur_only" ]] && {
+		package_repo="`package-query --aur-url "$cfg_aur_url" -A "$1" | head -1 | cut -d '/' -f1`"
+	} || {
+		package_repo="`package-query --aur-url "$cfg_aur_url" -AS "$1" | head -1 | cut -d '/' -f1`"
+	}
+
+	[[ "$package_repo" ]] || {
+		lf.err "Package $1 not found!"
+		return 1
 	}
 
 	cd "$cfg_work_dir"
-	echo "Downloading $aur_pkg_url/${1:0:2}/${1}/${1}.tar.gz"
-	curl "$aur_pkg_url/${1:0:2}/${1}/${1}.tar.gz" | gzip -d | tar xf -
+
+	case "${package_repo}" in
+		aur)	
+			lf.msg "Downloading $cfg_aur_url/packages/${1:0:2}/${1}/${1}.tar.gz"
+			curl "$cfg_aur_url/packages/${1:0:2}/${1}/${1}.tar.gz" | gzip -d | tar xf - || {
+				lf.err "Fail!"
+				return 3
+			}
+		;;
+
+		*)
+			[[ "$flag_build" ]] && {
+				cp -r "${cfg_abs_tree}/${package_repo}/${1}" . || {
+					lf.err "Fail!"
+					return 9
+				}
+			} || {
+				[[ "$flag_download_only" ]] && {
+					sudo pacman --cachedir "`pwd`" -Sw "$1"
+				}
+			}
+		;;
+	esac
+
+	return 0
 }
 
-aur.build() {
-	cd "$cfg_work_dir/$package"
+aur.update() {
+	local old_pkgs
+	old_pkgs=( `package-query -Au | cut -d ' ' -f1` )
 
-	[[ -d "$cfg_db_dir/pkg/$package/deps" ]] || { mkdir -p "$cfg_db_dir/pkg/$package/deps"; }
+	[[ "$flag_aur_only" ]] || { sudo pacman -Suy; }
 
-	[[ "$flag_install" ]] && { makepkg_flags="${makepkg_flags} -i"; }
+	lf.msg "Updating packages from AUR..."
 
-	source PKGBUILD
+	[[ "$old_pkgs" ]] || {
+		lf.msg "Everything seems to be up to date."
+		return 0
+	}
 
-	echo "${depends[@]}"
+	read -n1p "[$0] Packages that need updates: ${old_pkgs[@]}. Proceed? [Y/n] " answer
+	[[ "$answer" != 'y' ]] || {
+		lf.msg 'Ok.'
+		return 1
+	}
 
-	for i in ${depends[@]}; do
-		pacman -Q "$i" &>/dev/null || {
-			local pkg_repo=`package-query -f "%r" -AS ${i}`
-
-			[[ "$pkg_repo" ]] || { aur.die 10 "$package depends on $i, but $i is nowhere to be seen."; }
-
-			case "$pkg_repo" in
-				aur) "$0" -Si "$i";;
-			esac
-
-			touch "$cfg_db_dir/pkg/$package/deps/$i"
-		}
+	for i in "${old_pkgs[@]}"; do
+		"$BASH" "$0" -S "$i"
 	done
+}
 
-	makepkg ${makepkg_flags}
+aur.build_package() {
+	cd "$cfg_work_dir/$package"
+	[[ "$flag_build" ]] || { cfg_makepkg_flags+=' -i'; }
+	makepkg ${cfg_makepkg_flags}
 }
 
 aur.search() {
-	package-query --aur-url "$aur_url" -ASs "$1"
+	[[ "$flag_aur_only" ]] && {
+		package-query --aur-url "$cfg_aur_url" -As "$1"
+	} || {
+		package-query --aur-url "$cfg_aur_url" -ASs "$1"
+	}
 }
 
 aur.init() {
-	for i in "$cfg_work_dir" "$cfg_db_dir"; do
-		[[ -e "$i" ]] || { mkdir -p "$i"; }
+	for i in "$cfg_work_dir"; do
+		[[ -e "$i" ]] || {
+			mkdir -p "$i" || {
+				lf.msg "Cannot create $i!"
+				return 1
+			}
+		}
 	done
 }
 
-while getopts "Ssidh" option; do
-	case "$option" in
-		S) action_group='sync';;
-		s) action='search';;
-		i) flag_install='1';;
-		d) flag_download='1';;
-		h|?|*) aur.usage; exit;;
+aur.main() {
+	aur.init || { return 1; }
+	aur.args `lf.getopt "$@"` || { return 1; }
+
+	package="${args[0]##*/}"
+
+	case "$action_group" in
+		sync)
+			action="${action:-build}"
+
+			[[ "$flag_update" ]] && {
+				aur.update
+			}
+
+			[[ "$package" ]] && {
+				case "$action" in
+					search) aur.search "$package" || { return "$?"; };;
+					build)
+						aur.get_package "$package" || { return "$?"; }
+
+						[[ "$flag_download_only" ]] || {
+							case "$package_repo" in	
+								aur)
+									aur.build_package || { return "$?"; }
+								;;
+
+								*)
+									[[ "$flag_build" ]] && {
+										aur.build_package || { return "$?"; }
+									} || {
+										sudo pacman -S "$package"
+									}
+								;;
+							esac
+						}
+					;;
+				esac
+			}
+		;;
+
+		*) sudo pacman "$@";;
 	esac
-done
+}
 
-[[ "$OPTIND" ]] && { shift $(($OPTIND-1)); }
-
-package="$1"
-
-case "$action_group" in
-	sync)
-		[[ "$action" == 'search' ]] && {
-			aur.search "$package"; exit 1
-		} || {
-			aur.get "$package"
-			[[ "$flag_download" ]] || { aur.build "$package"; }
-		}
-	;;
-esac
+aur.main "$@"
