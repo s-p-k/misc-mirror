@@ -23,11 +23,14 @@ aur.usage() {
 	echo "$0 [options] [packages]"
 
 	echo "SYNC (-S):"
-	echo "-s	# search"
-	echo "-d	# download only"
+	echo "-s|--search			# search"
+	echo "-d|--download-only	# download only"
+	echo "-u|--upgrade			# upgrade"
+	echo "-y|--update			# update ABS"
 	echo
 	echo "OTHER:"
-	echo "-h	# show this message"
+	echo "-a|--aur-only			# AUR only"
+	echo "-h|--help				# show this message"
 }
 
 aur.args() {
@@ -36,14 +39,8 @@ aur.args() {
 			-a|--aur-only) flag_aur_only='1';;
 			-S|--sync) action_group='sync';;
 			-s|--search) action='search';;
-			-u|--upgrade) flag_update='1';;
-			-y|--update)
-				lf.msg "Updating ABS..."
-				sudo abs &>/dev/null || {
-					lf.err 'Failed!'
-					return 1
-				}
-			;;
+			-u|--upgrade) flag_upgrade='1';;
+			-y|--update) flag_update='1';;
 
 			-w|--download-only) flag_download_only='1';;
 			-b|--build) flag_build='1';;
@@ -98,11 +95,18 @@ aur.get_package() {
 	return 0
 }
 
-aur.update() {
+aur.update_local_db() {
+	lf.msg "Updating ABS..."
+	sudo abs >/dev/null || { lf.msg 'Fail!'; return 1; }
+
+	sudo pacman -Sy || { return 1; }
+}
+
+aur.upgrade() {
 	local old_pkgs
 	old_pkgs=( `package-query -Au | cut -d ' ' -f1` )
 
-	[[ "$flag_aur_only" ]] || { sudo pacman -Suy; }
+	[[ "$flag_aur_only" ]] || { sudo pacman -Su; }
 
 	lf.msg "Updating packages from AUR..."
 
@@ -181,9 +185,8 @@ aur.main() {
 		sync)
 			action="${action:-build}"
 
-			[[ "$flag_update" ]] && {
-				aur.update
-			}
+			[[ "$flag_update" ]] && { aur.update_local_db; }
+			[[ "$flag_upgrade" ]] && { aur.upgrade; }
 
 			[[ "$package" ]] && {
 				case "$action" in
