@@ -4,7 +4,7 @@
 [[ -e "$HOME/.config/renamer.rc" ]] && { source "$HOME/.config/renamer.rc"; }
 
 cfg_libfbt_path="${cfg_libfbt_path:-/usr/lib/libfbt}"
-cfg_hash_type="${cfg_hash_type:-md5}"
+cfg_hash_type="${cfg_hash_type:-sha1}"
 
 [[ -e "$cfg_libfbt_path" ]] || {
 	echo "This script depends on libfbt: https://github.com/fbt/libfbt"
@@ -69,7 +69,7 @@ renamer.main() {
 		file_type="$(rename.get_file_type "$file_path" | cut -d';' -f1)"
 		file_hash="$(rename.get_file_hash "$file_path")"
 		file_extension="$(rename.get_file_extention "$file_type")"
-		file_new_path="${file_path%%/*}/${file_hash}.${file_extension}"
+		file_new_path="${file_path%/*}/${file_hash}.${file_extension}"
 
 		[[ "$file_path" == "$file_new_path" ]] || {
 			[[ -e "$file_new_path" ]] && {
