@@ -59,3 +59,10 @@ A background changer
 		-h|--help				# Show this message.
 	Modes:
 		feh: center, fill, max, scale, tile.
+
+renamer
+-------
+Mass renamer primarily for images
+
+	$ renamer -h
+	Usage: renamer [-r]

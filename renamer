@@ -16,7 +16,7 @@ source "${cfg_libfbt_path}/libfbt.sh"
 # functions
 
 renamer.usage() {
-	lf.msg "Usage: $me [-r]\n"
+	echo "Usage: $me [-r]"
 }
 
 renamer.args() {
