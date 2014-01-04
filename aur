@@ -63,7 +63,7 @@ aur.get_package() {
 	}
 
 	[[ "$package_repo" ]] || {
-		lf.err "Package $1 not found!"
+		lf.err "Package $1 not found!\n"
 		return 1
 	}
 
@@ -71,9 +71,9 @@ aur.get_package() {
 
 	case "${package_repo}" in
 		aur)	
-			lf.msg "Downloading $cfg_aur_url/packages/${1:0:2}/${1}/${1}.tar.gz"
+			lf.msg "Downloading $cfg_aur_url/packages/${1:0:2}/${1}/${1}.tar.gz\n"
 			curl "$cfg_aur_url/packages/${1:0:2}/${1}/${1}.tar.gz" | gzip -d | tar xf - || {
-				lf.err "Fail!"
+				lf.err "Fail!\n"
 				return 3
 			}
 		;;
@@ -81,7 +81,7 @@ aur.get_package() {
 		*)
 			[[ "$flag_build" ]] && {
 				cp -r "${cfg_abs_tree}/${package_repo}/${1}" . || {
-					lf.err "Fail!"
+					lf.err "Fail!\n"
 					return 9
 				}
 			} || {
@@ -96,7 +96,7 @@ aur.get_package() {
 }
 
 aur.update_local_db() {
-	lf.msg "Updating ABS..."
+	lf.msg "Updating ABS...\n"
 	sudo abs >/dev/null || { lf.msg 'Fail!'; return 1; }
 
 	sudo pacman -Sy || { return 1; }
