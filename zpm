@@ -11,7 +11,7 @@ cfg_abs_tree="${cfg_abs_tree:-/var/abs}"
 cfg_makepkg_flags='-rs'
 # /config
 
-zpm.msg() { echo "[zpm] $1"; }
+zpm.msg() { echo -en "[zpm] $1"; }
 zpm.err() { zpm.msg "(error) $1" >&2; }
 
 zpm.usage() {
@@ -197,7 +197,7 @@ zpm.main() {
 	local packages
 
 	zpm.args `zpm.getopt "$@"` || { return 1; }
-	packages="${args[@]}"
+	packages=( "${args[@]}" )
 
 	case "$action_group" in
 		sync)
@@ -219,27 +219,32 @@ zpm.main() {
 					for i in "${packages[@]}"; do
 						package_repo="`package-query --aur-url "$cfg_aur_url" -AS "$i" | head -1 | cut -d '/' -f1`"
 
-						[[ "$package_repo" ]] || {
-							zpm.err "Package $i not found.\n"
-							return 1
+						[[ "$package_repo" ]] && {
+							case "$package_repo" in
+								aur)
+									zpm.aur::get "$i" || return "$?"
+									[[ "$flag_download_only" ]] || {
+										zpm.build "$i" || return "$?"
+									}
+								;;
+	
+								*)
+									[[ "$flag_abs" ]] && {
+										zpm.abs::get "$i" || return "$?"
+										zpm.build "$i" || return "$?"
+									} || {
+										sudo pacman -S "$i" || return "$?"
+									}
+								;;
+							esac
+						} || {
+							[[ -e "$cfg_work_dir/$i" ]] && {
+								zpm.build "$i" || return "$?"
+							} || {
+								zpm.err "Package $i not found.\n"
+								return 1
+							}
 						}
-
-						case "$package_repo" in
-							aur)
-								zpm.aur::get "$i" || return "$?"
-								[[ "$flag_download_only" ]] || { zpm.build "$i"; }
-							;;
-
-							*)
-								[[ "$flag_abs" ]] && {
-									zpm.abs::get "$i" || return "$?"
-									zpm.build "$i"
-									return "$?"
-								} || {
-									sudo pacman -S "$i"
-								}
-							;;
-						esac
 					done
 				;;
 			esac
