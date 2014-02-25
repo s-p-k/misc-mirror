@@ -1,0 +1,233 @@
+#!/usr/bin/env bash
+
+## config
+[[ -e "$HOME/.config/zpm.rc" ]] && {
+	source "$HOME/.config/zpm.rc"
+}
+
+cfg_work_dir="${cfg_work_dir:-$HOME/.zpm}"
+cfg_aur_url="${cfg_aur_url:-https://aur.archlinux.org}"
+cfg_abs_tree="${cfg_abs_tree:-/var/abs}"
+cfg_makepkg_flags='-rs'
+cfg_libfbt_path="${cfg_libfbt_path:-/usr/lib/libfbt}"
+# /config
+
+[[ -e "$cfg_libfbt_path" ]] || {
+	echo "This script depends on libfbt: https://github.com/fbt/libfbt"
+	exit 1
+}
+
+source "${cfg_libfbt_path}/libfbt.sh"
+
+zpm.usage() {
+cat << EOF
+$0 is an AUR, ABS and pacman wrapper
+Usage: $0 <flags> [packages]
+Flags:
+	-S|--sync			# Synchronize packages.
+		-s|--search		# Search for packages.
+		-y|--update		# Update the local database.
+		-u|--upgrade	# Upgrade packages.
+
+		These only work with AUR/ABS packages:
+		-w				# Download the package, don't do anything with it.
+		-b				# Build the package, don't install.
+
+	-A|--aur-only		# Only upgrade AUR packages.
+	-a|--abs			# Build packages from ABS instead of installing them with pacman.
+	
+	-h|--help			# Show this message.
+EOF
+}
+
+zpm.args() {
+	while [[ "$1" ]]; do
+		case "$1" in
+			-A|--aur-only) flag_aur_only='1';;
+			-a|--abs) flag_abs='1';;
+
+			-S|--sync) action_group='sync';;
+			-s|--search) action='search';;
+			-y|--update) flag_update='1';;
+			-u|--upgrade) flag_upgrade='1';;
+			-w|--dowload-only) flag_download_only='1';;
+			-b|--build-only) flag_build_only='1';;
+
+			-h|--help) zpm.usage; exit;;
+			--) :;;
+			*) args+=( "$1" );;
+		esac
+		shift
+	done
+}
+
+# ABS-related functions
+zpm.abs::update() { sudo abs; }
+zpm.abs::upgrade() {
+	local updated_packages
+
+	lf.msg "Upgrading packages from ABS...\n"
+
+	updated_packages=( `pacman -Qeu | cut -d ' ' -f1` )
+
+	[[ "$updated_packages" ]] || {
+		lf.msg "Everything seems to be up to date.\n"
+		return 0
+	}
+
+	lf.msg "Packages that need updates: ${updated_packages[*]}\n"
+	read -n1 -p "Proceed? [Y/n] " answer
+	[[ "$answer" == 'y' ]] || [[ "$answer" ]] && {
+		echo
+		lf.msg 'Ok.\n'
+		return 0
+	}
+
+	for i in "${updated_packages[@]}"; do
+		zpm.abs::get "$i" || return "$?"
+		zpm.build "$i"
+	done
+}
+
+zpm.abs::get() {
+	local package_abs_path=`find /var/abs -name "$1"`
+
+	[[ "$package_abs_path" ]] || {
+		lf.err "Can't find package $1 in ABS.\n"
+		return 1
+	}
+
+	cp -r "$package_abs_path" "$cfg_work_dir"
+}
+
+# AUR-related functions
+zpm.aur::get() {
+	cd "$cfg_work_dir"
+
+	lf.msg "Downloading $cfg_aur_url/packages/${1:0:2}/${1}/${1}.tar.gz\n"
+	curl "$cfg_aur_url/packages/${1:0:2}/${1}/${1}.tar.gz" | gzip -d | tar xf - || {
+		lf.err "Fail!\n"
+		return 1
+	}
+}
+
+zpm.aur::upgrade() {
+	local updated_packages package_name
+
+	lf.msg "Upgrading packages from AUR...\n"
+
+	updated_packages=( `package-query -Au | cut -d ' ' -f1` )
+
+	[[ "$updated_packages" ]] || {
+		lf.msg "Everything seems to be up to date.\n"
+		return 0
+	}
+
+	lf.msg "Packages that need updates: ${updated_packages[*]}\n"
+	read -n1 -p "Proceed? [Y/n] " answer
+	[[ "$answer" == 'y' ]] || [[ "$answer" ]] && {
+		echo
+		lf.msg 'Ok.\n'
+		return 0
+	}
+
+	for i in "${updated_packages[@]}"; do
+		package_name="${i##*/}"
+
+		zpm.aur::get "$package_name" || return "$?"
+		zpm.build "$package_name"
+	done
+}
+
+# pacman-related functions
+zpm.pacman::update() { sudo pacman -Sy; }
+zpm.pacman::upgrade() { sudo pacman -Su; }
+
+# Common functions
+zpm.build() {
+	cd "$cfg_work_dir/$1"
+	
+	[[ "$flag_build_only" ]] || { cfg_makepkg_flags+=' -i'; }
+
+	makepkg ${cfg_makepkg_flags}
+}
+
+zpm.update() {
+	zpm.abs::update
+	zpm.pacman::update
+}
+
+zpm.upgrade() {
+	[[ "$flag_aur_only" ]] || {
+		[[ "$flag_abs" ]] && { zpm.abs::upgrade; }
+		[[ "$flag_abs" ]] || { zpm.pacman::upgrade; }
+	}
+
+	[[ "$flag_no_aur" ]] || { zpm.aur::upgrade; }
+}
+
+zpm.search() {
+	[[ "$flag_aur_only" ]] && {
+		package-query --aur-url "$cfg_aur_url" -As "$1" || return 1
+	} || {
+		package-query --aur-url "$cfg_aur_url" -ASs "$1" || return 1
+	}
+}
+
+zpm.main() {
+	local packages
+
+	zpm.args `lf.getopt "$@"` || { return 1; }
+	packages="${args[@]}"
+
+	case "$action_group" in
+		sync)
+			[[ "$flag_update" ]] && { zpm.update; }
+			[[ "$flag_upgrade" ]] && { zpm.upgrade; }
+
+			action="${action:-build}"
+
+			[[ "$packages" ]] || { return 0; }
+
+			case "$action" in
+				search)
+					for i in "${packages[@]}"; do
+						zpm.search "$i"
+					done
+				;;
+
+				build)
+					for i in "${packages[@]}"; do
+						package_repo="`package-query --aur-url "$cfg_aur_url" -AS "$i" | head -1 | cut -d '/' -f1`"
+
+						[[ "$package_repo" ]] || {
+							lf.err "Package $i not found.\n"
+							return 1
+						}
+
+						case "$package_repo" in
+							aur)
+								zpm.aur::get "$i" || return "$?"
+								[[ "$flag_download_only" ]] || { zpm.build "$i"; }
+							;;
+
+							*)
+								[[ "$flag_abs" ]] && {
+									zpm.abs::get "$i" || return "$?"
+									zpm.build "$i"
+									return "$?"
+								} || {
+									sudo pacman -S "$i"
+								}
+							;;
+						esac
+					done
+				;;
+			esac
+		;;
+
+		*) sudo pacman "$@";;
+	esac
+}
+
+zpm.main "$@"
