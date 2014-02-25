@@ -9,15 +9,10 @@ cfg_work_dir="${cfg_work_dir:-$HOME/.zpm}"
 cfg_aur_url="${cfg_aur_url:-https://aur.archlinux.org}"
 cfg_abs_tree="${cfg_abs_tree:-/var/abs}"
 cfg_makepkg_flags='-rs'
-cfg_libfbt_path="${cfg_libfbt_path:-/usr/lib/libfbt}"
 # /config
 
-[[ -e "$cfg_libfbt_path" ]] || {
-	echo "This script depends on libfbt: https://github.com/fbt/libfbt"
-	exit 1
-}
-
-source "${cfg_libfbt_path}/libfbt.sh"
+zpm.msg() { echo "[zpm] $1"; }
+zpm.err() { zpm.msg "(error) $1" >&2; }
 
 zpm.usage() {
 cat << EOF
@@ -38,6 +33,30 @@ Flags:
 	
 	-h|--help			# Show this message.
 EOF
+}
+
+zpm.getopt() {
+	local keys
+
+	for i in "$@"; do
+		case "$i" in
+			--*) echo "$i";;
+
+			-*)
+				keys=( `echo "${i##*-}" | fold -w1` )
+
+				[[ "${#keys[@]}" -gt 1 ]] && {
+					for k in ${keys[@]}; do
+						echo "-${k}"
+					done
+				} || {
+					echo "$i"
+				}
+			;;
+
+			*) echo "$i";;
+		esac
+	done
 }
 
 zpm.args() {
@@ -66,20 +85,20 @@ zpm.abs::update() { sudo abs; }
 zpm.abs::upgrade() {
 	local updated_packages
 
-	lf.msg "Upgrading packages from ABS...\n"
+	zpm.msg "Upgrading packages from ABS...\n"
 
 	updated_packages=( `pacman -Qeu | cut -d ' ' -f1` )
 
 	[[ "$updated_packages" ]] || {
-		lf.msg "Everything seems to be up to date.\n"
+		zpm.msg "Everything seems to be up to date.\n"
 		return 0
 	}
 
-	lf.msg "Packages that need updates: ${updated_packages[*]}\n"
+	zpm.msg "Packages that need updates: ${updated_packages[*]}\n"
 	read -n1 -p "Proceed? [Y/n] " answer
 	[[ "$answer" == 'y' ]] || [[ "$answer" ]] && {
 		echo
-		lf.msg 'Ok.\n'
+		zpm.msg 'Ok.\n'
 		return 0
 	}
 
@@ -93,7 +112,7 @@ zpm.abs::get() {
 	local package_abs_path=`find /var/abs -name "$1"`
 
 	[[ "$package_abs_path" ]] || {
-		lf.err "Can't find package $1 in ABS.\n"
+		zpm.err "Can't find package $1 in ABS.\n"
 		return 1
 	}
 
@@ -104,9 +123,9 @@ zpm.abs::get() {
 zpm.aur::get() {
 	cd "$cfg_work_dir"
 
-	lf.msg "Downloading $cfg_aur_url/packages/${1:0:2}/${1}/${1}.tar.gz\n"
+	zpm.msg "Downloading $cfg_aur_url/packages/${1:0:2}/${1}/${1}.tar.gz\n"
 	curl "$cfg_aur_url/packages/${1:0:2}/${1}/${1}.tar.gz" | gzip -d | tar xf - || {
-		lf.err "Fail!\n"
+		zpm.err "Fail!\n"
 		return 1
 	}
 }
@@ -114,20 +133,20 @@ zpm.aur::get() {
 zpm.aur::upgrade() {
 	local updated_packages package_name
 
-	lf.msg "Upgrading packages from AUR...\n"
+	zpm.msg "Upgrading packages from AUR...\n"
 
 	updated_packages=( `package-query -Au | cut -d ' ' -f1` )
 
 	[[ "$updated_packages" ]] || {
-		lf.msg "Everything seems to be up to date.\n"
+		zpm.msg "Everything seems to be up to date.\n"
 		return 0
 	}
 
-	lf.msg "Packages that need updates: ${updated_packages[*]}\n"
+	zpm.msg "Packages that need updates: ${updated_packages[*]}\n"
 	read -n1 -p "Proceed? [Y/n] " answer
 	[[ "$answer" == 'y' ]] || [[ "$answer" ]] && {
 		echo
-		lf.msg 'Ok.\n'
+		zpm.msg 'Ok.\n'
 		return 0
 	}
 
@@ -177,7 +196,7 @@ zpm.search() {
 zpm.main() {
 	local packages
 
-	zpm.args `lf.getopt "$@"` || { return 1; }
+	zpm.args `zpm.getopt "$@"` || { return 1; }
 	packages="${args[@]}"
 
 	case "$action_group" in
@@ -201,7 +220,7 @@ zpm.main() {
 						package_repo="`package-query --aur-url "$cfg_aur_url" -AS "$i" | head -1 | cut -d '/' -f1`"
 
 						[[ "$package_repo" ]] || {
-							lf.err "Package $i not found.\n"
+							zpm.err "Package $i not found.\n"
 							return 1
 						}
 
