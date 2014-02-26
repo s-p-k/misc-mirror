@@ -233,7 +233,7 @@ zpm.main() {
 										zpm.abs::get "$i" || return "$?"
 										zpm.build "$i" || return "$?"
 									} || {
-										sudo pacman -S "$i" || return "$?"
+										install_pkgs+=( "$i" )
 									}
 								;;
 							esac
@@ -246,6 +246,8 @@ zpm.main() {
 							}
 						}
 					done
+
+					[[ "$install_pkgs" ]] && { sudo pacman -S "${install_pkgs[@]}"; }
 				;;
 			esac
 		;;
