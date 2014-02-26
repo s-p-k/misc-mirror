@@ -193,8 +193,25 @@ zpm.search() {
 	}
 }
 
+zpm.init() {
+	[[ -e "$cfg_work_dir" ]] || {
+		mkdir -p "$cfg_work_dir" || {
+			zpm.err "Can't create $cfg_work_dir!"
+			return 1
+		}
+	}
+
+	type package-query &>/dev/null || {
+		zpm.err 'package-query not found, installing...\n'
+		zpm.aur::get package-query
+		zpm.build package-query
+	}
+}
+
 zpm.main() {
 	local packages
+
+	zpm.init || return 1
 
 	zpm.args `zpm.getopt "$@"` || { return 1; }
 	packages=( "${args[@]}" )
