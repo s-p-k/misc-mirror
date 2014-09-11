@@ -22,8 +22,8 @@
 # About:
 # A simple upload script for ZFH (http://zerofiles.org)
 
-cfg_url_regex='^[a-z]+://.+'
-cfg_tmp_dir="/tmp/$USER/sup"
+cfg_url_regex='^[A-Za-z]([A-Za-z0-9+.-]+)?://.+'
+cfg_tmp_dir="/tmp/$USER/sup"; TEMPDIR="$cfg_tmp_dir"
 cfg_script_url='https://zfh.so/upload'
 
 [[ -f $HOME/.suprc ]] && { source $HOME/.suprc; }
@@ -56,6 +56,15 @@ sup.upload() {
 	return 0
 }
 
+sup.mktemp() {
+	>"$1" || {
+		sup.err "Cannot create $1!"
+		return 1
+	}
+
+	echo "$1"
+}
+
 sup.scrot() {
 	[[ "$scrot_exec" ]] || { scrot_exec=`which scrot`; }
 	[[ "$scrot_exec" ]] || {
@@ -66,7 +75,7 @@ sup.scrot() {
 	[[ "$flag_scrot_fullscreen" ]] || { scrot_args+=( '-s' ); }
 	[[ "$cfg_scrot_delay" ]] && { scrot_args+=( "-d $cfg_scrot_delay" ); }
 
-	file=`mktemp "$cfg_tmp_dir/sup_tmp_XXXXXX.png"`
+	file=`sup.mktemp "$cfg_tmp_dir/sup_tmp_$$.png"`
 	scrot "${scrot_args[@]}" "$file"
 }
 
@@ -79,7 +88,7 @@ sup.if_url() { echo "$1" | grep -oE "$cfg_url_regex" &>/dev/null; }
 
 while getopts "pRsFD:h" option; do
 	case "$option" in
-		p) flag_private='1';;
+		p) flag_private='true';;
 
 		R) flag_rm='1';;
 
@@ -99,7 +108,7 @@ sup.env
 	sup.scrot
 } || {
 	sup.if_url "$1" && {
-		file=`mktemp "$cfg_tmp_dir/sup_tmp_XXXXXX"`
+		file=`sup.mktemp "$cfg_tmp_dir/sup_tmp_$$"`
 		[[ "$file_title" ]] || { file_title="Source: $file; $cfg_default_title"; }
 
 		curl -s "$1" > "$file"
