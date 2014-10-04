@@ -25,6 +25,7 @@
 cfg_url_regex='^[A-Za-z]([A-Za-z0-9+.-]+)?://.+'
 cfg_tmp_dir="/tmp/$USER/sup"; TEMPDIR="$cfg_tmp_dir"
 cfg_script_url='https://zfh.so/upload'
+cfg_screenshot_ext='png'
 
 [[ -f $HOME/.suprc ]] && { source $HOME/.suprc; }
 
@@ -42,14 +43,12 @@ sup.env() {
 }
 
 sup.upload() {
-	[[ "$file_title" ]] || { file_title="$cfg_default_title"; }
-
 	curl -F file="@$file" \
 		-F upload_mode='api' \
 		-F flag_private="$flag_private" \
 		-F secret="$secret" \
 		-F submit="" \
-		"$cfg_script_url" -skL -A 'Sup ZFH' || { return 1; }
+		"$cfg_script_url" -sL -A 'zerofiles.org upload script' || { return 1; }
 
 	[[ "$flag_rm" ]] && { rm "$file"; }
 
@@ -66,6 +65,8 @@ sup.mktemp() {
 }
 
 sup.scrot() {
+	local tmp_file_name
+
 	[[ "$scrot_exec" ]] || { scrot_exec=`which scrot`; }
 	[[ "$scrot_exec" ]] || {
 		sup.err "Please install scrot to use this function"
@@ -75,8 +76,21 @@ sup.scrot() {
 	[[ "$flag_scrot_fullscreen" ]] || { scrot_args+=( '-s' ); }
 	[[ "$cfg_scrot_delay" ]] && { scrot_args+=( "-d $cfg_scrot_delay" ); }
 
+<<<<<<< HEAD
+	until [[ ! -e "${cfg_tmp_dir}/${tmp_file_name}" ]]; do
+		tmp_file_name="${RANDOM}${RANDOM}.${cfg_screenshot_ext}"
+	done
+
+	scrot "${scrot_args[@]}" "${cfg_tmp_dir}/$tmp_file_name" || {
+		sup.err "Failed to take a screenshot."
+		return 1
+	}
+
+	echo "${cfg_tmp_dir}/$tmp_file_name"
+=======
 	file=`sup.mktemp "$cfg_tmp_dir/sup_tmp_$$.png"`
 	scrot "${scrot_args[@]}" "$file"
+>>>>>>> 1f00542683c0e9756a46582b7c62429adb2212f6
 }
 
 sup.exclude() {
@@ -86,34 +100,58 @@ sup.exclude() {
 
 sup.if_url() { echo "$1" | grep -oE "$cfg_url_regex" &>/dev/null; }
 
+<<<<<<< HEAD
+main() {
+	while [[ "$1" ]]; do
+		case "$1" in
+			-p|--private) flag_private='true';;
+			-R|--remove-file) flag_rm='1';;
+			
+			-s|--screenshot) flag_scrot='1';;
+			-F|--fullscreen) flag_scrot_fullscreen='1';;
+			-D|--screenshot-delay) cfg_scrot_delay="$2"; shift;;
+=======
 while getopts "pRsFD:h" option; do
 	case "$option" in
 		p) flag_private='true';;
+>>>>>>> 1f00542683c0e9756a46582b7c62429adb2212f6
 
-		R) flag_rm='1';;
+			-h|--help|--usage) sup.usage; return;;
 
-		s) flag_scrot='1';;
-		F) flag_scrot_fullscreen='1';;
-		D) cfg_scrot_delay="$OPTARG";;
+			--) break;;
 
-		h|*) sup.usage;;
-	esac
-done
+			*) args+=( "$1" );;
+		esac
+		shift
+	done
 
-[[ "$OPTIND" ]] && { shift $(($OPTIND-1)); }
+	sup.env
 
-sup.env
+	if [[ "$flag_scrot" ]]; then
+		file="$(sup.scrot)" || { return 1; }
+	else
+		target="${args[0]}"; [[ "$target" ]] || { sup.usage; exit 1; }
 
+<<<<<<< HEAD
+		sup.if_url "$target" && {
+			file=`mktemp "$cfg_tmp_dir/sup_tmp_XXXXXX"`
+=======
 [[ "$flag_scrot" ]] && {
 	sup.scrot
 } || {
 	sup.if_url "$1" && {
 		file=`sup.mktemp "$cfg_tmp_dir/sup_tmp_$$"`
 		[[ "$file_title" ]] || { file_title="Source: $file; $cfg_default_title"; }
+>>>>>>> 1f00542683c0e9756a46582b7c62429adb2212f6
 
-		curl -s "$1" > "$file"
-	}
+			curl -s "$target" > "$file" || {
+				sup.err "Could not download file."
+				return 1
+			}
+		}
+	fi
+
+	sup.upload
 }
 
-[[ "$file" ]] || { file="$1"; }
-sup.upload
+main "$@"
