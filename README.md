@@ -27,21 +27,6 @@ A simple file upload script for [ZFH](https://zfh.so)
 		-D [num]    Delay the screenshot for [num] seconds
 		-h          Show this message
 
-aur
----
-Yet another AUR wrapper
-
-	$ aur -h
-	/home/fbt/bin/aur [options] [package]
-
-	SYNC (-S):
-	-s     Search for a package.
-	-i     Install a package after building it.
-	-d     Download a package and don't build it. Implies no -i.
-
-	OTHER:
-	-h     Show this message
-
 chameleon
 ---------
 A background changer
@@ -59,10 +44,3 @@ A background changer
 		-h|--help				# Show this message.
 	Modes:
 		feh: center, fill, max, scale, tile.
-
-renamer
--------
-Mass renamer primarily for images
-
-	$ renamer -h
-	Usage: renamer [-r]
