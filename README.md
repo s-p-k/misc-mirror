@@ -16,17 +16,6 @@ The help information that the scripts give is dynamic and is provided here only 
 Scripts
 =======
 
-sup
----
-A simple file upload script for [ZFH](https://zfh.so)
-
-	Usage: /home/fbt/bin/sup [-c title] [-t tags] [-RsF] [-D num] [file/url]
-		-R          Set to remove file after uploading (local fs only, obviously)
-		-s          Grab a screenshot to upload instead of a file/url
-		-F          Make a fullscreen shot instead of a selected window/area
-		-D [num]    Delay the screenshot for [num] seconds
-		-h          Show this message
-
 chameleon
 ---------
 A background changer
@@ -44,3 +33,10 @@ A background changer
 		-h|--help				# Show this message.
 	Modes:
 		feh: center, fill, max, scale, tile.
+
+miner
+-----
+Miner is a simple tool to merge (patch) zip archives.
+
+	$ miner
+	Usage: miner <zip0> <zip1>
