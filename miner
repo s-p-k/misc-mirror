@@ -32,7 +32,7 @@ miner.depends() {
 	local rc='0'
 
 	for i in "${cfg_depends[@]}"; do
-		which "$i" &>>/tmp/miner.log || {
+		type -P "$i" &>>/tmp/miner.log || {
 			[[ -f "$i" ]] || {
 				miner.err "$i is not found but is required to proceed."
 				local rc='1'

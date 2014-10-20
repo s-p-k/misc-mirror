@@ -99,7 +99,7 @@ chameleon.bg() {
 		return 1
 	}
 
-	bgm_exec="`which $cfg_bg_manager 2>/dev/null`"
+	bgm_exec="`type -P $cfg_bg_manager 2>/dev/null`"
 
 	[[ "$cfg_bg_mode" ]] || { cfg_bg_mode='fill'; }
 
@@ -151,7 +151,7 @@ chameleon.daemon() {
 chameleon.get_bg_manager() {
 	for i in "${cfg_bg_managers[@]}"; do
 		[[ "$cfg_bg_manager" ]] || {
-			which "$i" &>/dev/null && { cfg_bg_manager="$i"; }
+			type -P "$i" &>/dev/null && { cfg_bg_manager="$i"; }
 		}
 	done
 
