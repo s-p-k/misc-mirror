@@ -65,7 +65,7 @@ main() {
 	action=${action:-"upload"}
 
 	case "$action" in
-		upload|put)
+		upload)
 			curl "${curl_options[@]}" -F 'f:1=<-' "${cfg_url}/${paste_id-}"
 		;;
 
