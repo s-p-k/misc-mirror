@@ -2,8 +2,14 @@
 
 cfg_url='http://sprunge.us'
 
+err() { printf '%s\n' "$1" >&2; }
+
 main() {
-	[[ "$1" ]] && { cfg_url+="?lang=${1}"; }
+	type -P curl &>/dev/null || {
+		err "Can't find curl in your system; you need it for this script to work."
+		return 1
+	}
+
 	curl -F 'sprunge=<-' "$cfg_url"
 }
 
