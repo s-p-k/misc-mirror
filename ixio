@@ -18,6 +18,11 @@ usage() {
 }
 
 main() {
+	type -P curl &>/dev/null || {
+		err "Can't find curl in your system; you need it for this script to work."
+		return 1
+	}
+
 	declare -a curl_options
 
 	[[ -f "$HOME/.config/ixio.rc" ]] && {
