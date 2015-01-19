@@ -65,13 +65,8 @@ main() {
 	action=${action:-"upload"}
 
 	case "$action" in
-		upload)
-			curl "${curl_options[@]}" -F 'f:1=<-' "${cfg_url}/${paste_id-}"
-		;;
-
-		delete)
-			curl "${curl_options[@]}" -X DELETE "${cfg_url}/${paste_id}"
-		;;
+		upload) curl "${curl_options[@]}" -F 'f:1=<-' "${cfg_url}/${paste_id-}";;
+		delete) curl "${curl_options[@]}" -X DELETE "${cfg_url}/${paste_id}";;
 	esac
 }
 
