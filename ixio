@@ -37,6 +37,8 @@ main() {
 		case "$1" in
 			--help|-h) usage; return 0;;
 
+			--user|-u) cfg_username="$2"; shift;;
+
 			--delete|-d) action='delete'; paste_id="$2"; shift;;
 			--put|-p) curl_options+=( -X PUT ); paste_id="$2"; shift;;
 
@@ -53,10 +55,6 @@ main() {
 
 	if [[ -v cfg_username ]]; then
 		[[ -v cfg_password ]] || {
-			read -p "Password for $cfg_username on ix.io: " cfg_password
-		}
-
-		[[ "$cfg_password" ]] || {
 			err "no password provided, bailing."
 			return 1
 		}
