@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# Maintainer: Jack L. Frost <fbt@fleshless.org>
+set -eu
+
+_self="${0##*/}"
+cfg_url="http://ix.io"
+
+err() { printf '%s\n' "$1" >&2; }
+
+usage() {
+	cat <<- EOF
+		Usage: ${_self} [flags] < <file>
+		    Flags:
+		        -h|--help            Show this message
+		        -d|--delete <id>     Delete an id
+		        -p|--put <id>        Overwrite an id
+	EOF
+}
+
+main() {
+	declare -a curl_options
+
+	[[ -f "$HOME/.config/ixio.rc" ]] && {
+		if ! source "$HOME/.config/ixio.rc"; then
+			_ec="$?"
+			err "Failed to source the config at ${HOME}/.config/ixio.rc ($_ec)"
+			return 1
+		fi
+	}
+
+	while (( "$#" )); do
+		case "$1" in
+			--help|-h) usage; return 0;;
+
+			--delete|-d) action='delete'; paste_id="$2"; shift;;
+			--put|-p) curl_options+=( -X PUT ); paste_id="$2"; shift;;
+
+			--) shift; break;;
+			-*) break;;
+			*)
+				err "Unknown key: $1"
+				usage
+				return 1
+			;;
+		esac
+		shift
+	done
+
+	if [[ -v cfg_username ]]; then
+		[[ -v cfg_password ]] || {
+			read -p "Password for $cfg_username on ix.io: " cfg_password
+		}
+
+		[[ "$cfg_password" ]] || {
+			err "no password provided, bailing."
+			return 1
+		}
+
+		curl_options+=( '-u' "${cfg_username}:${cfg_password}" )
+	fi
+
+	action=${action:-"upload"}
+
+	case "$action" in
+		upload|put)
+			curl "${curl_options[@]}" -F 'f:1=<-' "${cfg_url}/${paste_id-}"
+		;;
+
+		delete)
+			curl "${curl_options[@]}" -X DELETE "${cfg_url}/${paste_id}"
+		;;
+	esac
+}
+
+main "$@"

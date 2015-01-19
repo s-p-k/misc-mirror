@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+cfg_url='http://sprunge.us'
+
+main() {
+	[[ "$1" ]] && { cfg_url+="?lang=${1}"; }
+	curl -F 'sprunge=<-' "$cfg_url"
+}
+
+main "$@"
