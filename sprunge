@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Maintainer: Jack L. Frost <fbt@fleshless.org>
+set -eu
 
 cfg_url='http://sprunge.us'
 
