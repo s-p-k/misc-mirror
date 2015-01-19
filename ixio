@@ -40,7 +40,9 @@ main() {
 			--user|-u) cfg_username="$2"; shift;;
 
 			--delete|-d) action='delete'; paste_id="$2"; shift;;
-			--put|-p) curl_options+=( -X PUT ); paste_id="$2"; shift;;
+
+			--limit|-l) curl_options+=( '-F' "read:1=${2}" ); shift;;
+			--put|-p) curl_options+=( '-X' 'PUT' ); paste_id="$2"; shift;;
 
 			--) shift; break;;
 			-*) break;;
