@@ -5,7 +5,10 @@ set -eu
 _self="${0##*/}"
 cfg_url="http://ix.io"
 
-err() { printf '%s\n' "$1" >&2; }
+echo() { printf '%s\n' "$*"; }
+err() { echo "$*" >&2; }
+
+cat() { while read; do echo "$REPLY"; done }
 
 usage() {
 	cat <<- EOF
