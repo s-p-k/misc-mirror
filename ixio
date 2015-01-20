@@ -43,12 +43,12 @@ main() {
 			--put|-p) curl_options+=( '-X' 'PUT' ); paste_id="$2"; shift;;
 
 			--) shift; break;;
-			-*) break;;
-			*)
+			-*)
 				err "Unknown key: $1"
 				usage
 				return 1
 			;;
+			*) break;;
 		esac
 		shift
 	done
