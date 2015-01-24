@@ -17,6 +17,7 @@ usage() {
 		        -h|--help            Show this message
 		        -d|--delete <id>     Delete an id
 		        -p|--put <id>        Overwrite an id
+		        -l|--limit <num>     Number of times th paste can be read before it's deleted.
 	EOF
 }
 

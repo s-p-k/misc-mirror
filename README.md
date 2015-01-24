@@ -40,3 +40,15 @@ Miner is a simple tool to merge (patch) zip archives.
 
 	$ miner
 	Usage: miner <zip0> <zip1>
+
+ixio
+----
+A client for ix.io. I didn't like the official one.
+
+	$ ixio -h
+	Usage: ixio [flags] < <file>
+    Flags:
+        -h|--help            Show this message
+        -d|--delete <id>     Delete an id
+        -p|--put <id>        Overwrite an id
+        -l|--limit <num>     Number of times th paste can be read before it's deleted.
