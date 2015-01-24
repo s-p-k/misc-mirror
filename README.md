@@ -43,7 +43,12 @@ Miner is a simple tool to merge (patch) zip archives.
 
 ixio
 ----
-A client for ix.io. I didn't like the official one.
+A client for ix.io. I didn't like the official one.  
+Depends on curl.
+
+	$ cmd | ixio
+	or
+	$ ixio < file
 
 	$ ixio -h
 	Usage: ixio [flags] < <file>
@@ -52,3 +57,12 @@ A client for ix.io. I didn't like the official one.
         -d|--delete <id>     Delete an id
         -p|--put <id>        Overwrite an id
         -l|--limit <num>     Number of times th paste can be read before it's deleted.
+
+sprunge
+-------
+A script for sprunge, because I'm weird and hate aliases.  
+Depends on curl.
+
+	$ cmd | sprunge
+	or
+	$ sprunge < file
