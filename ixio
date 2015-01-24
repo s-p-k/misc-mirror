@@ -40,9 +40,9 @@ main() {
 			--help|-h) usage; return 0;;
 
 			--user|-u) cfg_username="$2"; shift;;
+			--nologin|-n) flag_nologin=1;;
 
 			--delete|-d) action='delete'; paste_id="$2"; shift;;
-
 			--limit|-l) curl_options+=( '-F' "read:1=${2}" ); shift;;
 			--put|-p) curl_options+=( '-X' 'PUT' ); paste_id="$2"; shift;;
 
@@ -57,7 +57,7 @@ main() {
 		shift
 	done
 
-	if [[ -v cfg_username ]]; then
+	if [[ -v cfg_username && ! -v flag_nologin ]]; then
 		[[ -v cfg_password ]] || {
 			err "no password provided, bailing."
 			return 1
