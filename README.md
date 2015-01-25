@@ -66,3 +66,18 @@ Depends on curl.
 	$ cmd | sprunge
 	or
 	$ sprunge < file
+
+imgur
+-----
+imgur is a relatively simple imgur client. It does not support authorization.
+
+	Usage: imgur [flags] [file]
+	Flags:
+		-h    Show this message.
+		-s    Make a screenshot and upload that. If a file is specified, the screenshot is saved there.
+		-F    Make a fullscreen screenshot instead of asking you to select a window or an area. Implies -s.
+		-R    Remove the file after uploading.
+		-c    Source an alternative config file.
+
+	You can set some stuff in a config file. Look in the argument handling part of the script for details.
+	The default path is $HOME/.config/imgur.rc.sh

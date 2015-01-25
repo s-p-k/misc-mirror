@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+# Author: Jack L. Frost <fbt@fleshless.org>
+# Licensed under the Internet Software Consortium (ISC) license.
+# See LICENSE for its text.
+set -eu
+
+_self="${0##*/}"
+
+# Config
+cfg_client_id='7901fd66b0490c5'
+
+# Functions
+echo() { printf '%s\n' "$*"; }
+err() { echo "$*" >&2; }
+
+mktemp() {
+	>"$1" || {
+		err "Cannot create $1!"
+		return 1
+	}
+
+	echo "$1"
+}
+
+usage() {
+	echo "$_self is a relatively simple imgur client. It does not support authorization."
+	echo
+	echo "Usage: $_self [flags] [file]"
+	echo "Flags:"
+	echo "	-h    Show this message."
+	echo "	-s    Make a screenshot and upload that. If a file is specified, the screenshot is saved there."
+	echo "	-F    Make a fullscreen screenshot instead of asking you to select a window or an area. Implies -s."
+	echo "	-R    Remove the file after uploading."
+	echo "	-c    Source an alternative config file."
+	echo
+	echo "You can set some stuff in a config file. Look in the argument handling part of the script for details."
+	echo "The default path is \$HOME/.config/imgur.rc.sh"
+}
+
+main() {
+	local flag_screenshot=0 flag_fullscreen=0 flag_remove_file=0
+
+	if [[ "${XDG_CONFIG_HOME-}" ]]; then
+		cfg_file="${XDG_CONFIG_HOME}/imgur.rc.sh"
+	else
+		cfg_file="$HOME/.config/imgur.rc.sh"
+	fi
+
+	while (( $# )); do
+		case "$1" in
+			-h) usage; return 0;;
+
+			-s) flag_screenshot=1;;
+			-F)
+				flag_screenshot=1
+				flag_fullscreen=1
+			;;
+
+			-R) flag_remove_file=1;;
+			-c) cfg_file="$2"; shift;;
+
+			--) shift; break;;
+			-*)
+				err "Unknown key: $1"
+				usage
+				return 1
+			;;
+
+			*) break;;
+		esac
+		shift
+	done
+
+	[[ -f "$cfg_file" ]] && {
+		source "$cfg_file" || {
+			err "Failed sourcing the config: $cfg_file"
+			return 1
+		}
+	}
+
+	type -P jshon >/dev/null || {
+		err "This script depends on jshon to parse the API json output. "
+		return 1
+	}
+
+	if (( "$flag_screenshot" )); then
+		type -P scrot >/dev/null || {
+			err "The screenshot feature depends on scrot!"
+			return 1
+		}
+
+		if (( $# )); then
+			file="$1"
+		else
+			file=$(mktemp "/tmp/scn_${RANDOM}.png")
+		fi
+
+		(( "$flag_fullscreen" )) || {
+			scrot_misc_options+=( '-s' )
+		}
+
+		scrot -z ${scrot_misc_options[*]-} "$file" || {
+			err "scrot failed"
+			return 1
+		}
+	else
+		(( $# )) || { usage; return 1; }
+		file="$1"
+	fi
+
+	[[ -f "$file" ]] || {
+		err "$file does not exist."
+		return 1
+	}
+
+	if ! curl -sfH "Authorization: Client-ID $cfg_client_id" -F "image=@$file" "https://api.imgur.com/3/upload" | jshon -e data -e link -u; then
+		curl_result="$?"
+		echo "Upload failed."
+		return "$curl_result"
+	fi
+		
+	(( "$flag_remove_file" )) && { rm -v "$file"; }
+}
+
+main "$@"
