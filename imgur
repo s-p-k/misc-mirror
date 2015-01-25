@@ -16,6 +16,7 @@ err() { echo "$*" >&2; }
 
 debug() {
 	(( "$flag_debug" )) && { err "DEBUG: $*"; }
+	return 0
 }
 
 mktemp() {
