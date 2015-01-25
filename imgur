@@ -7,11 +7,16 @@ set -eu
 _self="${0##*/}"
 
 # Config
-cfg_client_id='7901fd66b0490c5'
+client_id='7901fd66b0490c5'
+tmp_dir='/tmp'
 
 # Functions
 echo() { printf '%s\n' "$*"; }
 err() { echo "$*" >&2; }
+
+debug() {
+	(( "$flag_debug" )) && { err "DEBUG: $*"; }
+}
 
 mktemp() {
 	>"$1" || {
@@ -25,10 +30,12 @@ mktemp() {
 usage() {
 	echo "$_self is a relatively simple imgur client. It does not support authorization."
 	echo
-	echo "Usage: $_self [flags] [file]"
+	echo "Usage: $_self [flags] [path]"
 	echo "Flags:"
 	echo "	-h    Show this message."
-	echo "	-s    Make a screenshot and upload that. If a file is specified, the screenshot is saved there."
+	echo "	-s    Make a screenshot and upload that. If a path is specified, the screenshot is saved there."
+	echo "	      If the path is a dir, the screenshot will be saved under that directory with a random name."
+	echo "	      You can override the default tmp dir (/tmp) in the config file with \`tmp_dir=<path>\`"
 	echo "	-F    Make a fullscreen screenshot instead of asking you to select a window or an area. Implies -s."
 	echo "	-R    Remove the file after uploading."
 	echo "	-c    Source an alternative config file."
@@ -40,7 +47,7 @@ usage() {
 }
 
 main() {
-	local flag_screenshot=0 flag_fullscreen=0 flag_remove_file=0
+	local flag_screenshot=0 flag_fullscreen=0 flag_remove_file=0 flag_debug=0
 
 	if [[ "${XDG_CONFIG_HOME-}" ]]; then
 		cfg_file="${XDG_CONFIG_HOME}/imgur.rc.sh"
@@ -60,6 +67,7 @@ main() {
 
 			-R) flag_remove_file=1;;
 			-c) cfg_file="$2"; shift;;
+			-d) flag_debug=1;;
 
 			--) shift; break;;
 			-*)
@@ -91,15 +99,23 @@ main() {
 			return 1
 		}
 
-		if (( $# )); then
-			file="$1"
-		else
-			file=$(mktemp "/tmp/scn_${RANDOM}.png")
-		fi
+		(( $# )) && {
+			if [[ -d "$1" ]]; then
+				tmp_dir="$1"
+			else
+				file="$1"
+			fi
+		}
+
+		[[ "${file-}" ]] || {
+			file=$(mktemp "${tmp_dir}/scn_${RANDOM}.png")
+		}
 
 		(( "$flag_fullscreen" )) || {
 			scrot_misc_options+=( '-s' )
 		}
+
+		debug "Saving the screenshot to ${file}"
 
 		scrot -z ${scrot_misc_options[*]-} "$file" || {
 			err "scrot failed"
@@ -115,7 +131,7 @@ main() {
 		return 1
 	}
 
-	api_answer=$(curl -sfH "Authorization: Client-ID $cfg_client_id" -F "image=@$file" "https://api.imgur.com/3/upload")
+	api_answer=$(curl -sfH "Authorization: Client-ID $client_id" -F "image=@$file" "https://api.imgur.com/3/upload")
 	curl_exit_code="$?"
 
 	if (( "$curl_exit_code" > 0 )); then
