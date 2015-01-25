@@ -71,8 +71,6 @@ imgur
 -----
 imgur is a relatively simple imgur client. It does not support authorization.
 
-imgur is a relatively simple imgur client. It does not support authorization.
-
 	Usage: imgur [flags] [path]
 	Flags:
 		-h    Show this message.
