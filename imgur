@@ -47,6 +47,13 @@ usage() {
 	echo "The default path is \$HOME/.config/imgur.rc.sh"
 }
 
+depends() {
+	type -P "$1" &>/dev/null || {
+		err "$2"
+		return 1
+	}
+}
+
 main() {
 	local flag_screenshot=0 flag_fullscreen=0 flag_remove_file=0 flag_debug=0
 
@@ -89,21 +96,11 @@ main() {
 		}
 	}
 
-	type -P curl >/dev/null || {
-		err "This script depends on curl to upload the files."
-		return 1
-	}
-
-	type -P jshon >/dev/null || {
-		err "This script depends on jshon to parse the API json output."
-		return 1
-	}
+	depends curl 'This script depends on curl to upload the files.' || return 1
+	depends jshon 'This script depends on jshon to parse the API json output.' || return 1
 
 	if (( "$flag_screenshot" )); then
-		type -P scrot >/dev/null || {
-			err "The screenshot feature depends on scrot!"
-			return 1
-		}
+		depends scrot 'The screenshot feature depends on scrot to grab the image.' || return 1
 
 		(( $# )) && {
 			if [[ -d "$1" ]]; then
