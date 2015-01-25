@@ -137,6 +137,8 @@ main() {
 	api_answer=$(curl -sfH "Authorization: Client-ID $client_id" -F "image=@$file" "https://api.imgur.com/3/upload")
 	curl_exit_code="$?"
 
+	debug "$api_answer"
+
 	if (( "$curl_exit_code" > 0 )); then
 		err "Upload failed."
 		return "$curl_exit_code"
