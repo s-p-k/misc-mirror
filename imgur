@@ -33,6 +33,8 @@ usage() {
 	echo "	-R    Remove the file after uploading."
 	echo "	-c    Source an alternative config file."
 	echo
+	echo "Using several keys in a row (like -sFR) is not supported."
+	echo "There is no support for putting the image URL into the X clipboard. That's stupid. Just do \`imgur | xclip\`."
 	echo "You can set some stuff in a config file. Look in the argument handling part of the script for details."
 	echo "The default path is \$HOME/.config/imgur.rc.sh"
 }
@@ -79,7 +81,7 @@ main() {
 	}
 
 	type -P jshon >/dev/null || {
-		err "This script depends on jshon to parse the API json output. "
+		err "This script depends on jshon to parse the API json output."
 		return 1
 	}
 
@@ -113,13 +115,18 @@ main() {
 		return 1
 	}
 
-	if ! curl -sfH "Authorization: Client-ID $cfg_client_id" -F "image=@$file" "https://api.imgur.com/3/upload" | jshon -e data -e link -u; then
-		curl_result="$?"
-		echo "Upload failed."
-		return "$curl_result"
+	api_answer=$(curl -sfH "Authorization: Client-ID $cfg_client_id" -F "image=@$file" "https://api.imgur.com/3/upload")
+	curl_exit_code="$?"
+
+	if (( "$curl_exit_code" > 0 )); then
+		err "Upload failed."
+		return "$curl_exit_code"
+	else
+		img_url=$( jshon -e data -e link -u <<< "$api_answer" )
+		echo "$img_url"
 	fi
-		
-	(( "$flag_remove_file" )) && { rm -v "$file"; }
+
+	(( "$flag_remove_file" )) && { rm -v "$file" >&2; }
 }
 
 main "$@"

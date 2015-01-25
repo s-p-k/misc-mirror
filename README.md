@@ -79,5 +79,7 @@ imgur is a relatively simple imgur client. It does not support authorization.
 		-R    Remove the file after uploading.
 		-c    Source an alternative config file.
 
+	Using several keys in a row (like -sFR) is not supported.
+	There is no support for putting the image URL into the X clipboard. That's stupid. Just do `imgur | xclip`.
 	You can set some stuff in a config file. Look in the argument handling part of the script for details.
 	The default path is $HOME/.config/imgur.rc.sh
