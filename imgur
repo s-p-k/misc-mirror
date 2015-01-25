@@ -89,6 +89,11 @@ main() {
 		}
 	}
 
+	type -P curl >/dev/null || {
+		err "This script depends on curl to upload the files."
+		return 1
+	}
+
 	type -P jshon >/dev/null || {
 		err "This script depends on jshon to parse the API json output."
 		return 1
