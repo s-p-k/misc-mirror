@@ -29,22 +29,24 @@ mktemp() {
 }
 
 usage() {
-	echo "$_self is a relatively simple imgur client. It does not support authorization."
-	echo
-	echo "Usage: $_self [flags] [path]"
-	echo "Flags:"
-	echo "	-h    Show this message."
-	echo "	-s    Make a screenshot and upload that. If a path is specified, the screenshot is saved there."
-	echo "	      If the path is a dir, the screenshot will be saved under that directory with a random name."
-	echo "	      You can override the default tmp dir (/tmp) in the config file with \`tmp_dir=<path>\`"
-	echo "	-F    Make a fullscreen screenshot instead of asking you to select a window or an area. Implies -s."
-	echo "	-R    Remove the file after uploading."
-	echo "	-c    Source an alternative config file."
-	echo
-	echo "Using several keys in a row (like -sFR) is not supported."
-	echo "There is no support for putting the image URL into the X clipboard. That's stupid. Just do \`imgur | xclip\`."
-	echo "You can set some stuff in a config file. Look in the argument handling part of the script for details."
-	echo "The default path is \$HOME/.config/imgur.rc.sh"
+	while read; do printf '%s\n' "$REPLY"; done <<- EOF
+		$_self is a relatively simple imgur client. It does not support authorization.
+
+		Usage: $_self [flags] [path]
+		Flags:
+		    -h    Show this message.
+		    -s    Make a screenshot and upload that. If a path is specified, the screenshot is saved there.
+		            If the path is a dir, the screenshot will be saved under that directory with a random name.
+		            You can override the default tmp dir (/tmp) in the config file with \`tmp_dir=<path>\`
+		    -F    Make a fullscreen screenshot instead of asking you to select a window or an area. Implies -s.
+		    -R    Remove the file after uploading.
+		    -c    Source an alternative config file.
+
+		Using several keys in a row (like -sFR) is not supported.
+		There is no support for putting the image URL into the X clipboard. That's stupid. Just do \`imgur | xclip\`.
+		You can set some stuff in a config file. Look in the argument handling part of the script for details.
+		The default path is \$HOME/.config/imgur.rc.sh
+	EOF
 }
 
 depends() {
