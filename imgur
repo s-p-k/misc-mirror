@@ -143,6 +143,13 @@ main() {
 		err "Upload failed."
 		return "$curl_exit_code"
 	else
+		api_status=$( jshon -e status -u <<< "$api_answer" )
+
+		(( "$api_status" < 400 )) || {
+			err "Upload failed. API says error: $api_status"
+			return 1
+		}
+
 		img_url=$( jshon -e data -e link -u <<< "$api_answer" )
 		echo "$img_url"
 	fi
