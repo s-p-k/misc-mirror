@@ -61,6 +61,8 @@ args_norm() {
 		unset -v arg opt c keys
 
 		case "$1" in
+			--) shift; break;;
+
 			--*)
 				IFS='=' read arg opt <<< "$1"
 				printf '%s\n' "$arg"
