@@ -56,6 +56,42 @@ depends() {
 	}
 }
 
+args_norm() {
+	while (( $# )); do
+		unset -v arg opt c keys
+
+		case "$1" in
+			--*)
+				IFS='=' read arg opt <<< "$1"
+				printf '%s\n' "$arg"
+
+				[[ "$opt" ]] && {
+					printf '%s\n' "$opt"
+				}
+			;;
+
+			-*)
+				while read -n1 c
+				do
+					case "$c" in
+						-|'') :;;
+						*) keys+=( "-$c" );;
+					esac
+				done <<< "$1"
+
+				printf '%s\n' "${keys[@]}"
+			;;
+		esac
+		
+		[[ -v 2 && ! "$2" =~ ^- ]] && {
+			printf '%s\n' "$2"
+			shift
+		}
+		
+		shift
+	done
+}
+
 main() {
 	local flag_screenshot=0 flag_fullscreen=0 flag_remove_file=0 flag_debug=0
 
@@ -159,4 +195,4 @@ main() {
 	(( "$flag_remove_file" )) && { rm -v "$file" >&2; }
 }
 
-main "$@"
+main $(args_norm "$@")
