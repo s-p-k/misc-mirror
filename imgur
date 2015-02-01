@@ -83,13 +83,9 @@ args_norm() {
 
 				printf '%s\n' "${keys[@]}"
 			;;
+
+			*) printf '%s\n' "$1";;
 		esac
-		
-		[[ -v 2 && ! "$2" =~ ^- ]] && {
-			printf '%s\n' "$2"
-			shift
-		}
-		
 		shift
 	done
 }
