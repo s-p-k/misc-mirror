@@ -56,40 +56,6 @@ depends() {
 	}
 }
 
-args_norm() {
-	while (( $# )); do
-		unset -v arg opt c keys
-
-		case "$1" in
-			--) printf '%s\n' '--'; break;;
-
-			--*)
-				IFS='=' read arg opt <<< "$1"
-				printf '%s\n' "$arg"
-
-				[[ "$opt" ]] && {
-					printf '%s\n' "$opt"
-				}
-			;;
-
-			-*)
-				while read -n1 c
-				do
-					case "$c" in
-						-|'') :;;
-						*) keys+=( "-$c" );;
-					esac
-				done <<< "$1"
-
-				printf '%s\n' "${keys[@]}"
-			;;
-
-			*) printf '%s\n' "$1";;
-		esac
-		shift
-	done
-}
-
 main() {
 	local flag_screenshot=0 flag_fullscreen=0 flag_remove_file=0 flag_debug=0
 
@@ -101,23 +67,32 @@ main() {
 
 	while (( $# )); do
 		case "$1" in
-			-h) usage; return 0;;
-
-			-s) flag_screenshot=1;;
-			-F)
-				flag_screenshot=1
-				flag_fullscreen=1
-			;;
-
-			-R) flag_remove_file=1;;
-			-c) cfg_file="$2"; shift;;
-			-d) flag_debug=1;;
-
 			--) shift; break;;
+
 			-*)
-				err "Unknown key: $1"
-				usage
-				return 1
+				while read -n1 c
+				do
+					case "$c" in
+						-|'') :;;
+
+						h) usage; return 0;;
+						s) flag_screenshot=1;;
+						F)
+							flag_screenshot=1
+							flag_fullscreen=1
+						;;
+
+						R) flag_remove_file=1;;
+						c) cfg_file="$2"; shift;;
+						d) flag_debug=1;;
+
+						*)
+							err "Unknown key: $1"
+							usage
+							return 1
+						;;
+					esac
+				done <<< "$1"
 			;;
 
 			*) break;;
@@ -193,4 +168,4 @@ main() {
 	(( "$flag_remove_file" )) && { rm -v "$file" >&2; }
 }
 
-main $(args_norm "$@")
+main "$@"
