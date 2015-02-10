@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 # Maintainer: Jack L. Frost <fbt@fleshless.org>
-set -eu
 
 _self="${0##*/}"
 cfg_url="http://ix.io"
@@ -18,10 +17,54 @@ usage() {
 		        -d|--delete <id>     Delete an id
 		        -p|--put <id>        Overwrite an id
 		        -l|--limit <num>     Number of times th paste can be read before it's deleted.
+		        -u|--user            Username for autherntication. Turns on authentication.
+		        -n|--auth-toggle     Toggle authentication. Turns authentication on or off (even if a username is supplied) depending
+		                               on the default set in the config file (if any). Without one, the default is on.
 	EOF
 }
 
+set_argv() {
+	declare arg opt c
+	declare -ag ARGV
+
+	while (( $# )); do
+		unset -v arg opt c
+
+		case "$1" in
+			(--) ARGV+=( "$1" ); break;;
+
+			(--*)
+				IFS='=' read arg opt <<< "$1"
+				ARGV+=( "$arg" )
+
+				[[ "$opt" ]] && {
+					ARGV+=( "$opt" )
+				}
+			;;
+
+			(-*)
+				while read -n1 c
+				do
+					case "$c" in
+						-|'') :;;
+						*) ARGV+=( "-$c" );;
+					esac
+				done <<< "$1"
+			;;
+
+			(*) ARGV+=( "$1" );;
+		esac
+		shift
+	done
+}
+
 main() {
+	declare flag_nologin cfg_username action paste_id _ec
+	declare -a curl_options
+
+	flag_nologin=0
+	action='upload'
+
 	type -P curl &>/dev/null || {
 		err "Can't find curl in your system; you need it for this script to work."
 		return 1
@@ -37,28 +80,56 @@ main() {
 
 	while (( "$#" )); do
 		case "$1" in
-			--help|-h) usage; return 0;;
+			(-h|--help)
+				usage
+				return 0;;
 
-			--user|-u) cfg_username="$2"; shift;;
-			--nologin|-n) flag_nologin=1;;
+			(-u|--user)
+				cfg_username="$2"
+				shift;;
 
-			--delete|-d) action='delete'; paste_id="$2"; shift;;
-			--limit|-l) curl_options+=( '-F' "read:1=${2}" ); shift;;
-			--put|-p) curl_options+=( '-X' 'PUT' ); paste_id="$2"; shift;;
+			(-n|--auth-toggle)
+				if (( flag_nologin )); then
+					flag_nologin=0
+				else
+					flag_nologin=1
+				fi
+			;;
 
-			--) shift; break;;
-			-*)
+			(-d|--delete)
+				action='delete'
+				paste_id="$2"
+				shift;;
+
+			(-l|--limit)
+				curl_options+=( '-F' "read:1=${2}" )
+				shift;;
+
+			(-p|--put)
+				curl_options+=( '-X' 'PUT' )
+				paste_id="$2"
+				shift;;
+
+			(--)
+				shift
+				break;;
+
+			(-*)
 				err "Unknown key: $1"
 				usage
-				return 1
-			;;
-			*) break;;
+				return 1;;
+
+			(*) break;;
 		esac
 		shift
 	done
 
-	if [[ -v cfg_username && ! -v flag_nologin ]]; then
-		[[ -v cfg_password ]] || {
+	if [[ "$cfg_username" ]] && (( ! flag_nologin )); then
+		[[ "$cfg_password" ]] || {
+			read -sp "Password for $cfg_username: " cfg_password	
+		}
+
+		[[ "$cfg_password" ]] || {
 			err "no password provided, bailing."
 			return 1
 		}
@@ -66,12 +137,11 @@ main() {
 		curl_options+=( '-u' "${cfg_username}:${cfg_password}" )
 	fi
 
-	action=${action:-"upload"}
-
 	case "$action" in
 		upload) curl ${curl_options[*]-} -F 'f:1=<-' "${cfg_url}/${paste_id-}";;
 		delete) curl ${curl_options[*]-} -X DELETE "${cfg_url}/${paste_id}";;
 	esac
 }
 
-main "$@"
+set_argv "$@"
+main "${ARGV[@]}"
