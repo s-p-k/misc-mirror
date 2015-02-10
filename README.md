@@ -52,12 +52,14 @@ Depends on curl.
 
 	$ ixio -h
 	Usage: ixio [flags] < <file>
-    Flags:
-        -h|--help            Show this message
-        -d|--delete <id>     Delete an id
-        -p|--put <id>        Overwrite an id
-        -l|--limit <num>     Number of times th paste can be read before it's deleted.
-
+	Flags:
+		-h|--help            Show this message
+		-d|--delete <id>     Delete an id
+		-p|--put <id>        Overwrite an id
+		-l|--limit <num>     Number of times the paste can be read before it's deleted.
+		-u|--user            Username for autherntication. Turns on authentication.
+		-n|--auth-toggle     Toggle authentication. Turns authentication on or off (even if a username is supplied) depending
+		                       on the default set in the config file (if any). Without one, the default is on.
 sprunge
 -------
 A script for sprunge, because I'm weird and hate aliases.  
