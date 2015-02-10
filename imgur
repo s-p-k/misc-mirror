@@ -34,15 +34,15 @@ usage() {
 
 		Usage: $_self [flags] [path]
 		Flags:
-		    -h    Show this message.
-		    -s    Make a screenshot and upload that. If a path is specified, the screenshot is saved there.
-		            If the path is a dir, the screenshot will be saved under that directory with a random name.
-		            You can override the default tmp dir (/tmp) in the config file with \`tmp_dir=<path>\`
-		    -F    Make a fullscreen screenshot instead of asking you to select a window or an area. Implies -s.
-		    -R    Remove the file after uploading.
-		    -c    Source an alternative config file.
+		    -h|--help          Show this message.
+		    -s|--screenshot    Make a screenshot and upload that. If a path is specified, the screenshot is saved there.
+		                         If the path is a dir, the screenshot will be saved under that directory with a random name.
+		                         You can override the default tmp dir (/tmp) in the config file with \`tmp_dir=<path>\`
+		    -F|--fullscreen    Make a fullscreen screenshot instead of asking you to select a window or an area. Implies -s.
+		    -R|--remove-file   Remove the file after uploading. Applies to tmp files too.
+		    -c|--config-file   Source an alternative config file.
+			-d|--debug         Toggle debug messages.
 
-		Using several keys in a row (like -sFR) is not supported.
 		There is no support for putting the image URL into the X clipboard. That's stupid. Just do \`imgur | xclip\`.
 		You can set some stuff in a config file. Look in the argument handling part of the script for details.
 		The default path is \$HOME/.config/imgur.rc.sh
@@ -56,6 +56,41 @@ depends() {
 	}
 }
 
+set_argv() {
+	declare arg opt c
+	declare -ag ARGV
+
+	while (( $# )); do
+		unset -v arg opt c
+
+		case "$1" in
+			(--) ARGV+=( "$1" ); break;;
+
+			(--*)
+				IFS='=' read arg opt <<< "$1"
+				ARGV+=( "$arg" )
+
+				[[ "$opt" ]] && {
+					ARGV+=( "$opt" )
+				}
+			;;
+
+			(-*)
+				while read -n1 c
+				do
+					case "$c" in
+						-|'') :;;
+						*) ARGV+=( "-$c" );;
+					esac
+				done <<< "$1"
+			;;
+
+			(*) ARGV+=( "$1" );;
+		esac
+		shift
+	done
+}
+
 main() {
 	local flag_screenshot=0 flag_fullscreen=0 flag_remove_file=0 flag_debug=0
 
@@ -67,45 +102,47 @@ main() {
 
 	while (( $# )); do
 		case "$1" in
-			--) shift; break;;
+			(--) shift; break;;
 
-			-*)
-				while read -n1 c
-				do
-					case "$c" in
-						-|'') :;;
-
-						h) usage; return 0;;
-						s) flag_screenshot=1;;
-						F)
-							flag_screenshot=1
-							flag_fullscreen=1
-						;;
-
-						R) flag_remove_file=1;;
-						c) cfg_file="$2"; shift;;
-						d) flag_debug=1;;
-
-						*)
-							err "Unknown key: $1"
-							usage
-							return 1
-						;;
-					esac
-				done <<< "$1"
+			(-h|--help) usage; return 0;;
+			(-s|--screenshot) flag_screenshot=1;;
+			(-F|--fullscreen)
+				flag_screenshot=1
+				flag_fullscreen=1
 			;;
 
-			*) break;;
+			(-R|--remove-file) flag_remove_file=1;;
+			(-c|--config-file)
+				cfg_file="$2"
+
+				[[ -f "$cfg_file" ]] || {
+					err "Config does not exist: ${cfg_file}"
+					return 1
+				}
+
+				shift
+			;;
+			(-d|--debug) flag_debug=1;;
+
+			(-*)
+				err "Unknown key: $1"
+				usage
+				return 1
+			;;
+
+			(*) break;;
 		esac
 		shift
 	done
 
-	[[ -f "$cfg_file" ]] && {
+	debug "${ARGV[@]}"
+
+	if [[ -f "$cfg_file" ]]; then
 		source "$cfg_file" || {
-			err "Failed sourcing the config: $cfg_file"
+			err "Failed sourcing the config: ${cfg_file}"
 			return 1
 		}
-	}
+	fi
 
 	depends curl 'This script depends on curl to upload the files.' || return 1
 	depends jshon 'This script depends on jshon to parse the API json output.' || return 1
@@ -168,4 +205,5 @@ main() {
 	(( "$flag_remove_file" )) && { rm -v "$file" >&2; }
 }
 
-main "$@"
+set_argv "$@"
+main "${ARGV[@]-}"
