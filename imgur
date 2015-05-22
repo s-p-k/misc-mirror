@@ -36,7 +36,7 @@ usage() {
 		    -F|--fullscreen    Make a fullscreen screenshot instead of asking you to select a window or an area. Implies -s.
 		    -R|--remove-file   Remove the file after uploading. Applies to tmp files too.
 		    -c|--config-file   Source an alternative config file.
-			-d|--debug         Toggle debug messages.
+		    -d|--debug         Toggle debug messages.
 
 		There is no support for putting the image URL into the X clipboard. That's stupid. Just do \`imgur | xclip\`.
 		You can set some stuff in a config file. Look in the argument handling part of the script for details.
@@ -137,7 +137,7 @@ main() {
 		debug() { :; }
 	fi
 
-	debug "Supplied arguments: ${ARGV[@]}"
+	debug "Supplied arguments: ${ARGV[@]-}"
 
 	if [[ -f "$cfg_file" ]]; then
 		source "$cfg_file" || {
@@ -179,8 +179,13 @@ main() {
 		file="$1"
 	fi
 
+	[[ "${file-}" ]] || {
+		usage
+		return 1
+	}
+
 	[[ -f "$file" ]] || {
-		err "$file does not exist."
+		err "File does not exist: $file"
 		return 1
 	}
 
