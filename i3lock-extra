@@ -56,11 +56,14 @@ cleanup() {
 }
 
 main() {
+	umask 0077 # All files and dirs created should only be accessible by the user.
+
 	while (( $# )); do
 		case "$1" in
 			--help|-h) usage; return 0;;
 			--mode|-m) mode="$2"; shift;;
 			--tmpdir|-d) cfg_tmpdir="$2"; shift;;
+			--umask|-u) umask "$2"; shift;;
 
 			--) shift; break;;
 			-*)
@@ -75,7 +78,7 @@ main() {
 	done
 
 	if ! [[ -d "$cfg_tmpdir" ]]; then
-		mkdir -pm700 "$cfg_tmpdir" || {
+		mkdir -p "$cfg_tmpdir" || {
 			return 1
 		}
 	fi
