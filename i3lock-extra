@@ -2,7 +2,7 @@
 
 cfg_tmpdir="/run/user/$UID/i3lock-extra"
 cfg_lockfile="$cfg_tmpdir/locked"
-cfg_pixelize_scale='4'
+cfg_pixelize_scale='10'
 
 err() { echo "$*" >&2; }
 
