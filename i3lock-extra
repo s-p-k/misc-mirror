@@ -2,6 +2,7 @@
 
 cfg_tmpdir="/run/user/$UID/i3lock-extra"
 cfg_lockfile="$cfg_tmpdir/locked"
+cfg_pixelize_scale='4'
 
 err() { echo "$*" >&2; }
 
@@ -31,11 +32,17 @@ random() {
 }
 
 deskshot() {
+	declare scale_down scale_up
 	declare dist_mode=$1; shift
 
 	case "$dist_mode" in
 		blur) scrot -e "convert -gaussian-blur 4x8 \$f ${cfg_tmpdir}/lockbg.png" "${cfg_tmpdir}/lockbg.png";;
-		pixelize) scrot -e "convert \$f -scale 25% -scale 400% ${cfg_tmpdir}/lockbg.png" "${cfg_tmpdir}/lockbg.png";;
+		pixelize)
+			scale_down=$(( 100/cfg_pixelize_scale ))
+			scale_up=$(( ( 100/cfg_pixelize_scale ) * cfg_pixelize_scale * cfg_pixelize_scale ))
+
+			scrot -e "convert \$f -scale "$scale_down"% -scale "$scale_up"% ${cfg_tmpdir}/lockbg.png" "${cfg_tmpdir}/lockbg.png"
+		;;
 	esac
 
 	if [[ "$1" ]]; then
@@ -61,9 +68,10 @@ main() {
 	while (( $# )); do
 		case "$1" in
 			--help|-h) usage; return 0;;
-			--mode|-m) mode="$2"; shift;;
-			--tmpdir|-d) cfg_tmpdir="$2"; shift;;
-			--umask|-u) umask "$2"; shift;;
+			--mode|-m) mode=$2; shift;;
+			--tmpdir|-d) cfg_tmpdir=$2; shift;;
+			--umask|-u) umask $2; shift;;
+			--pixelize-scale|-p) cfg_pixelize_scale=$2; shift;;
 
 			--) shift; break;;
 			-*)
