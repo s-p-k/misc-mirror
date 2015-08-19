@@ -38,7 +38,7 @@ deskshot() {
 		pixelize) scrot -e "convert \$f -scale 25% -scale 400% ${cfg_tmpdir}/lockbg.png" "${cfg_tmpdir}/lockbg.png";;
 	esac
 
-	if (( $# )); then
+	if [[ "$1" ]]; then
 		convert -gravity center -composite -matte "${cfg_tmpdir}/lockbg.png" "$1" "${cfg_tmpdir}/lockbg.png"
 	fi
 	
@@ -74,11 +74,6 @@ main() {
 		shift
 	done
 
-	(( $# )) || {
-		usage
-		return 1
-	}
-
 	if ! [[ -d "$cfg_tmpdir" ]]; then
 		mkdir -pm700 "$cfg_tmpdir" || {
 			return 1
@@ -87,8 +82,17 @@ main() {
 
 	case "${mode:-img}" in
 		blur|pixelize) image=$( deskshot "$mode" "$1" );;
-		rnd) image=$( random "$1" );;
-		img) image="$1";;
+
+		rnd)
+			(( $# )) || { usage; return 1; }
+			image=$( random "$1" )
+		;;
+
+		img)
+			(( $# )) || { usage; return 1; }
+			image="$1"
+		;;
+
 		*) usage; return 1;;
 	esac
 
