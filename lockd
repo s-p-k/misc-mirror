@@ -1,13 +1,11 @@
 #!/usr/bin/env bash
 
-cfg_rundir="${XDG_RUNTIME_DIR:-"/run/user/$UID"}"
-cfg_lockfile="$cfg_rundir/lockd.lock"
 
 echo() { printf '%s\n' "$*"; }
 err() { echo "$*" >&2; }
 
 usage() {
-	echo "Usage: $_self <command>"
+	echo "Usage: lockd [-p <poll_rate>] <command>"
 }
 
 cleanup() {
@@ -15,7 +13,27 @@ cleanup() {
 }
 
 main() {
-	_self="${0##*/}"
+	if ! [[ "$XDG_RUNTIME_DIR" ]]; then
+		XDG_RUNTIME_DIR="/run/user/$UID"
+	fi
+
+	cfg_poll_rate=3
+	cfg_rundir="$XDG_RUNTIME_DIR"
+
+	while (( $# )); do
+		case "$1" in
+			(-h|--help) usage; exit 0;;
+
+			(-r|--run-dir) cfg_rundir=$2;;
+			(-p|--poll-rate) cfg_poll_rate=$2;;
+
+			(--) shift; break;;
+			(*) break;;
+		esac
+		shift
+	done
+
+	cfg_lockfile="$cfg_rundir/lockd.lock"
 
 	(( $# )) || {
 		usage
@@ -29,7 +47,7 @@ main() {
 		return 1
 	}
 
-	while sleep 1; do
+	while sleep "$cfg_poll_rate"; do
 		if ! [[ -f "$cfg_locker_lockfile" ]]; then
 			time_left=$(( $(xssstate -t) / 1000 ))
 
