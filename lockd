@@ -49,7 +49,7 @@ main() {
 	}
 
 	while sleep "$cfg_poll_rate"; do
-		if ! [[ -f "$cfg_locker_lockfile" ]]; then
+		if ! [[ -f "$cfg_lockfile" ]]; then
 			time_left=$(( $(xssstate -t) / 1000 ))
 
 			if ! (( time_left )); then
