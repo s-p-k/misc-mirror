@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+
+cfg_rundir="${XDG_RUNTIME_DIR:-"/run/user/$UID"}"
+cfg_lockfile="$cfg_rundir/lockd.lock"
+
+echo() { printf '%s\n' "$*"; }
+err() { echo "$*" >&2; }
+
+usage() {
+	echo "Usage: $_self <command>"
+}
+
+cleanup() {
+	rm -f "$cfg_lockfile"
+}
+
+main() {
+	_self="${0##*/}"
+
+	(( $# )) || {
+		usage
+		return 1
+	}
+
+	lock_cmd=( "$@" )
+
+	[[ $(xssstate -s) == 'disabled' ]] && {
+		err "Screensaver is disabled. Use xset s <seconds> to enable it."
+		return 1
+	}
+
+	while sleep 1; do
+		if ! [[ -f "$cfg_locker_lockfile" ]]; then
+			time_left=$(( $(xssstate -t) / 1000 ))
+
+			if ! (( time_left )); then
+				> "$cfg_lockfile"
+				"${lock_cmd[@]}"
+			fi
+		fi
+	done
+}
+
+trap 'cleanup' EXIT
+
+main "$@"
