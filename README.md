@@ -106,7 +106,7 @@ An i3-lock wrapper for doing fancy shit.
 		--pixelize-scape|-p # For the pixelize mode only. Sets the number by which the image is resized down and
 		                      back up to achieve the pixelize effect. For example, 4 means that it will be resized
 		                      to 1/4 of the original and blown back up.
-Modes:
+	Modes:
 		rnd <dir>           # Use a random image from a dir.
 		blur [img]          # Take a screenshot, blur it out. If provided, add an image on top.
 		pixelize [img]      # Same as the abobe, but pixelize the image instead.
