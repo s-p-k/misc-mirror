@@ -5,7 +5,7 @@ echo() { printf '%s\n' "$*"; }
 err() { echo "$*" >&2; }
 
 usage() {
-	echo "Usage: lockd [-p <poll_rate>] <command>"
+	echo "Usage: lockd [-r <rundir>] [-p <poll_rate>] <command>"
 }
 
 cleanup() {
