@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# A dmenu wrapper to use colours set in common
+
+get_bookmarks() {
+	while read url title; do
+		echo "$url"
+	done < "$HOME/.config/bookmarks"
+}
+
+main() {
+	action=$1; shift
+
+	case "${action}" in
+		url)
+			uri=$(get_bookmarks | rofi -dmenu "$@")
+			[[ "$uri" ]] && { sx-open "$uri"; }
+			printf '%s\n' "$uri"
+		;;
+	esac
+}
+
+main "$@"
