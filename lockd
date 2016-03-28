@@ -27,6 +27,8 @@ main() {
 			(-r|--run-dir) cfg_rundir=$2;;
 			(-p|--poll-rate) cfg_poll_rate=$2;;
 
+			(-o|--once) flag_once=1;;
+
 			(--) shift; break;;
 			(-*) err "Unknown flag: $1"; return 1;;
 			(*) break;;
@@ -48,16 +50,28 @@ main() {
 		return 1
 	}
 
-	while sleep "$cfg_poll_rate"; do
-		if ! [[ -f "$cfg_lockfile" ]]; then
-			time_left=$(( $(xssstate -t) / 1000 ))
+	if (( flag_once )); then
+		> "$cfg_lockfile"
+		"${lock_cmd[@]}"
+	else
+		while sleep "$cfg_poll_rate"; do
+			if ! [[ -f "$cfg_lockfile" ]]; then
+				time_left=$(( $(xssstate -t) / 1000 ))
 
-			if ! (( time_left )); then
-				> "$cfg_lockfile"
-				"${lock_cmd[@]}"
+				if ! (( time_left )); then
+					echo "$(date) locking."
+
+					> "$cfg_lockfile"
+					while ! "${lock_cmd[@]}"; do
+						echo "$(date) locker exited abnormally!"
+					done
+
+					echo "$(date) unlocked."
+					rm -f "$cfg_lockfile"
+				fi
 			fi
-		fi
-	done
+		done
+	fi
 }
 
 trap 'cleanup' EXIT
