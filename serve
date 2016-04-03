@@ -1,0 +1,131 @@
+#!/usr/bin/zsh
+
+zmodload zsh/net/tcp
+
+function http_respond {
+	declare content_type content_length status_code status_msg file_path file_path_real f_file
+
+	content_type='text/html'
+	status_code=200
+	status_msg=OK
+
+	while (( $# )); do
+		case $1 in
+			-f)
+				file_path=$2
+				shift;;
+			-s)
+				status_code=$2
+				status_msg=$3
+				shift 2;;
+			-t)
+				content_type=$2
+				shift;;
+		esac
+
+		shift
+	done
+
+	if [[ $file_path ]]; then
+		if [[ -f $file_path ]]; then
+			file_path_real=$file_path:A
+
+			if [[ -r $file_path_real ]]; then
+				read -r content_type < <( file -ib $file_path_real )
+				read -r content_length _ < <( du -b $file_path_real )
+
+				f_file=1
+			else
+				http_respond -s 403 'Not Allowed'
+				return $?
+			fi
+		else
+			http_respond -s 404 'Not Found'
+			return $?
+		fi
+	else
+		if [[ -f $webroot$error_pages[$status_code] ]]; then
+			http_respond -s $status_code $status_msg -f $webroot$error_pages[$status_code]
+			return $?
+		else
+			response_data=$status_msg
+			read -r content_length < <( wc -c <<< $response_data )
+		fi
+	fi
+
+	printf 'HTTP/1.1 %s %s\r\n' $status_code $status_msg
+	printf 'Content-type: %s\r\n' $content_type
+	printf 'Content-Length: %s\r\n' $content_length
+	printf 'Connection: close\r\n'
+	printf '\r\n'
+
+	if (( f_file )); then
+		cat $file_path_real
+	else
+		printf '%s\n' $response_data
+	fi
+}
+
+function worker {
+	declare method uri protocol
+	read -r method uri protocol
+
+	case $method in
+		(GET)
+			http_respond -f $webroot${uri//../}
+		;;
+
+		(*)
+			status_code='400'
+			status_message='Bad Request'
+			http_respond -s 400 'Bad Request'
+		;;
+	esac
+}
+
+function cleanup {
+	ztcp -c $listen_fd
+	exit
+}
+
+function main {
+	declare -A error_pages
+
+	webroot=$PWD
+	index=index.html
+	port=8080
+
+	trap 'cleanup' INT TERM
+
+	while (( $# )); do
+		case $1 in
+			-r|--root) webroot=$2; shift;;
+			-i|--index) index=$2; shift;;
+			-p|--port) port=$2; shift;;
+			-c|--config) config=$2; shift;;
+
+			--) shift; break;;
+			*) break;;
+		esac
+
+		shift
+	done
+
+	if [[ $config ]]; then
+		if ! source $config; then
+			return $?
+		fi
+	fi
+
+	ztcp -v -l $port
+	listen_fd=$REPLY
+
+	while ztcp -v -a $listen_fd; do
+		worker >&$REPLY <&$REPLY &
+		ztcp -c $REPLY
+	done
+
+	cleanup
+}
+
+main "$@"
