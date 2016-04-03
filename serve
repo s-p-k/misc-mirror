@@ -70,6 +70,10 @@ function worker {
 	declare method uri protocol
 	read -r method uri protocol
 
+	if [[ $uri == / ]]; then
+		uri="/$index"
+	fi
+
 	case $method in
 		(GET)
 			http_respond -f $webroot${uri//../}
@@ -117,10 +121,10 @@ function main {
 		fi
 	fi
 
-	ztcp -v -l $port
+	ztcp -l $port
 	listen_fd=$REPLY
 
-	while ztcp -v -a $listen_fd; do
+	while ztcp -a $listen_fd; do
 		worker >&$REPLY <&$REPLY &
 		ztcp -c $REPLY
 	done
