@@ -109,7 +109,7 @@ An i3-lock wrapper for doing fancy shit.
 	Modes:
 		rnd <dir>           # Use a random image from a dir.
 		blur [img]          # Take a screenshot, blur it out. If provided, add an image on top.
-		pixelize [img]      # Same as the abobe, but pixelize the image instead.
+		pixelize [img]      # Same as the above, but pixelize the image instead.
 		img <img>           # Use the provided image.
 
 lockd
