@@ -59,7 +59,7 @@ function http_respond {
 	printf 'Connection: close\r\n'
 	printf '\r\n'
 
-	printf '%s %s %s %s %s %s %s\n' $remote_host $method $uri $status_code $status_msg $content_length $content_type >&2
+	printf '%s %s %s %s %s %s\n' $remote_host $method $uri $status_code $content_length $content_type >&2
 
 	if (( f_file )); then
 		cat $file_path_real
