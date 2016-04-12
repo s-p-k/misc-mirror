@@ -127,5 +127,3 @@ Very basic password manager. Uses GPG.
 	l|list [regex]    # Same as search.
 	c|clear           # Clear the terminal.
 	h|?|help          # Show this message.
-
-# test
