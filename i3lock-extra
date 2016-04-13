@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 cfg_tmpdir="/run/user/$UID/i3lock-extra"
-cfg_lockfile="$cfg_tmpdir/locked"
 cfg_pixelize_scale='10'
 
 err() { echo "$*" >&2; }
@@ -67,10 +66,6 @@ image_prepare() {
 	fi
 }
 
-cleanup() {
-	rm -f "$cfg_lockfile";
-}
-
 main() {
 	umask 0077 # All files and dirs created should only be accessible by the user.
 
@@ -118,8 +113,6 @@ main() {
 
 	image_prepare
 
-	trap cleanup INT TERM EXIT
-	
 	until i3lock -n -t -i "$image_file"; do
 		true
 	done
