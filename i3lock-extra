@@ -8,57 +8,63 @@ err() { echo "$*" >&2; }
 
 usage() {
 	while read; do printf '%s\n' "$REPLY"; done <<- EOF
-		Usage: i3lock-extra <-m mode> [args]
-		Flags:
-		       --mode|-m <mode>    # Lock mode.
-		       --tmpdir|-d <path>  # Directory to store temporary files in. This should not be accessible by other users!
-		       --pixelize-scape|-p # For the pixelize mode only. Sets the number by which the image is resized down and
-		                             back up to achieve the pixelize effect. For example, 4 means that it will be resized
-		                             to 1/4 of the original and blown back up.
-		Modes:
-		       rnd <dir>           # Use a random image from a dir.
-		       blur [img]          # Take a screenshot, blur it out. If provided, add an image on top.
-		       pixelize [img]      # Same as the above, but pixelize the image instead.
-		       img <img>           # Use the provided image.
+		Usage: i3lock-extra [flags]
+		    Flags:
+		        --help|-h                       Show this message.
+		        --umask|-u                      Set umask.
+		        --tmpdir|-d                     Directory to store temporary files in.
+		                                          This should not be accessible by other users!
+		        --image_file|-i                 Lock screen with an image.
+		        --screenshot|-s                 Lock scteen with a screenshot of your current workspace.
+
+		        # Modifiers (apply to both screenshots and specified images):
+		        --overlay-image|-o              Overlay another image over the main one.
+		                                          Gets applied after all other modifiers.
+		        --grayscale|-g                  Make the image grayscale.
+		        --pixelize|-p                   Pixelize the image.
+		        --pixelize-scale|-P             Sets the number by which the image is resized down and up
+		                                          again to achieve the pixelize effect. For example, 4 means
+		                                          that it will be resized to 1/4 of the original and blown back up.
+		        --blur|-b                       Blur the image.
 	EOF
 }
 
-random() {
-	images_dir=$1
-
-	images=( "$images_dir"/* )
-	images_c="${#images[*]}"
-	image_r=$(( RANDOM % images_c ))
-	image="${images[$image_r]}"
-
-	printf '%s' "$image"
-}
-
 deskshot() {
-	declare scale_down scale_up
+	declare scale_down scale_up image
 	declare dist_mode=$1; shift
 
-	case "$dist_mode" in
-		blur) scrot -e "convert -gaussian-blur 4x8 \$f ${cfg_tmpdir}/lockbg.png" "${cfg_tmpdir}/lockbg.png";;
-		pixelize)
-			scale_down=$(( 100/cfg_pixelize_scale ))
-			scale_up=$(( ( 100/cfg_pixelize_scale ) * cfg_pixelize_scale * cfg_pixelize_scale ))
-
-			scrot -e "convert \$f -scale "$scale_down"% -scale "$scale_up"% ${cfg_tmpdir}/lockbg.png" "${cfg_tmpdir}/lockbg.png"
-		;;
-	esac
-
-	if [[ "$1" ]]; then
-		convert -gravity center -composite -matte "${cfg_tmpdir}/lockbg.png" "$1" "${cfg_tmpdir}/lockbg.png"
-	fi
-	
-	image="${cfg_tmpdir}/lockbg.png"
-	printf '%s' "$image"
+	scrot "$cfg_tmpdir/lockbg.png"
+	image_file="${cfg_tmpdir}/lockbg.png"
 }
 
-lock() {
-	>"$cfg_lockfile"
-	i3lock -n -t -i "$image"
+image_prepare() {
+	declare -a convert_args
+	declare scale_down scale_up
+
+	if (( f_grayscale )); then
+		convert_args+=( -grayscale rec601luma )
+	fi
+
+	if (( f_pixelize )); then
+		scale_down=$(( 100/cfg_pixelize_scale ))
+		scale_up=$(( ( 100/cfg_pixelize_scale ) * cfg_pixelize_scale * cfg_pixelize_scale ))
+
+		convert_args+=( -scale "$scale_down%" -scale "$scale_up%" )
+	fi
+
+	if (( f_blur )); then
+		convert_args+=( -gaussian-blur 4x8 )
+	fi
+
+	if [[ "$convert_args" ]]; then
+		convert "$image_file" "${convert_args[@]}" "$cfg_tmpdir/lockbg.png"
+		image_file="$cfg_tmpdir/lockbg.png"
+	fi
+	
+	if [[ "$overlay_image" ]]; then
+		convert -gravity center -composite -matte "$image_file" "$overlay_image" "$cfg_tmpdir/lockbg.png"
+		image_file="$cfg_tmpdir/lockbg.png"
+	fi
 }
 
 cleanup() {
@@ -71,10 +77,17 @@ main() {
 	while (( $# )); do
 		case "$1" in
 			--help|-h) usage; return 0;;
-			--mode|-m) mode=$2; shift;;
+
 			--tmpdir|-d) cfg_tmpdir=$2; shift;;
 			--umask|-u) umask $2; shift;;
-			--pixelize-scale|-p) cfg_pixelize_scale=$2; shift;;
+			--image-file|-i) image_file=$2; shift;;
+			--overlay-image|-o) overlay_image=$2; shift;;
+
+			--screenshot|-s) f_screenshot=1;;
+			--grayscale|-g) f_grayscale=1;;
+			--pixelize|-p) f_pixelize=1;;
+			--pixelize-scale|-P) cfg_pixelize_scale=$2; shift;;
+			--blur|-b) f_blur=1;;
 
 			--) shift; break;;
 			-*)
@@ -94,25 +107,20 @@ main() {
 		}
 	fi
 
-	case "${mode:-img}" in
-		blur|pixelize) image=$( deskshot "$mode" "$1" );;
+	if (( f_screenshot )); then
+		deskshot
+	fi
 
-		rnd)
-			(( $# )) || { usage; return 1; }
-			image=$( random "$1" )
-		;;
+	if ! [[ $image_file ]]; then
+		usage
+		return 1
+	fi
 
-		img)
-			(( $# )) || { usage; return 1; }
-			image="$1"
-		;;
-
-		*) usage; return 1;;
-	esac
+	image_prepare
 
 	trap cleanup INT TERM EXIT
 	
-	until lock; do
+	until i3lock -n -t -i "$image_file"; do
 		true
 	done
 }
