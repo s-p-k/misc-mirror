@@ -52,7 +52,7 @@ image_prepare() {
 	fi
 
 	if (( f_blur )); then
-		convert_args+=( -gaussian-blur 4x8 )
+		convert_args+=( -blur 4x8 )
 	fi
 
 	if [[ "$convert_args" ]]; then
