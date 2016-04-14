@@ -3,7 +3,7 @@
 cfg_tmpdir="/run/user/$UID/i3lock-extra"
 cfg_pixelize_scale='10'
 
-err() { echo "$*" >&2; }
+err() { printf '%s\n' "$*" >&2; }
 
 usage() {
 	while read; do printf '%s\n' "$REPLY"; done <<- EOF
