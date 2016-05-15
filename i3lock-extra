@@ -69,6 +69,9 @@ image_prepare() {
 main() {
 	umask 0077 # All files and dirs created should only be accessible by the user.
 
+	# Restart i3lock on non-zero exit code by default.
+	f_secloop=1
+
 	while (( $# )); do
 		case "$1" in
 			--help|-h) usage; return 0;;
@@ -83,6 +86,8 @@ main() {
 			--pixelize|-p) f_pixelize=1;;
 			--pixelize-scale|-P) cfg_pixelize_scale=$2; shift;;
 			--blur|-b) f_blur=1;;
+
+			--unsecure) f_secloop=0;;
 
 			--) shift; break;;
 			-*)
@@ -113,9 +118,13 @@ main() {
 
 	image_prepare
 
-	until i3lock -n -t -i "$image_file"; do
-		true
-	done
+	if (( f_secloop )); then
+		until i3lock -n -t -i "$image_file"; do
+			true
+		done
+	else
+		i3lock -n -t -i "$image_file"
+	fi
 }
 
 main "$@"
