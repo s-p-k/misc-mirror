@@ -14,7 +14,7 @@ usage() {
 		        --tmpdir|-d                     Directory to store temporary files in.
 		                                          This should not be accessible by other users!
 		        --image_file|-i                 Lock screen with an image.
-		        --screenshot|-s                 Lock scteen with a screenshot of your current workspace.
+		        --screenshot|-s                 Lock screen with a screenshot of your current workspace.
 
 		        # Modifiers (apply to both screenshots and specified images):
 		        --overlay-image|-o              Overlay another image over the main one.
@@ -29,9 +29,6 @@ usage() {
 }
 
 deskshot() {
-	declare scale_down scale_up image
-	declare dist_mode=$1; shift
-
 	scrot "$cfg_tmpdir/lockbg.png"
 	image_file="${cfg_tmpdir}/lockbg.png"
 }
@@ -77,7 +74,7 @@ main() {
 			--help|-h) usage; return 0;;
 
 			--tmpdir|-d) cfg_tmpdir=$2; shift;;
-			--umask|-u) umask $2; shift;;
+			--umask|-u) umask "$2"; shift;;
 			--image-file|-i) image_file=$2; shift;;
 			--overlay-image|-o) overlay_image=$2; shift;;
 
